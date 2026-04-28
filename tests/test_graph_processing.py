@@ -195,3 +195,74 @@ def test_disabled_edge_ignored_in_graph_construction():
 
     edge_ids_in_graph = {data["edge_id"] for _, _, data in processor.graph.edges(data=True)}
     assert edge_ids_in_graph == {1, 2, 3}
+
+def test_find_downstream_vertices_1():
+    vertex_ids = [0, 2, 4]
+    edge_ids = [1, 3]
+    edge_vertex_id_pairs = [(0, 2), (2, 4)]
+    edge_enabled = [True, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    assert processor.find_downstream_vertices(1) == [2, 4]
+
+def test_find_downstream_vertices_2():
+    vertex_ids = [0, 2, 4]
+    edge_ids = [1, 3]
+    edge_vertex_id_pairs = [(0, 2), (2, 4)]
+    edge_enabled = [True, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    assert processor.find_downstream_vertices(3) == [4]
+
+def test_find_downstream_vertices_IdNotfound():
+    vertex_ids = [0, 2, 4]
+    edge_ids = [1, 3]
+    edge_vertex_id_pairs = [(0, 2), (2, 4)]
+    edge_enabled = [True, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+    try:
+        processor.find_downstream_vertices(5)
+        raise AssertionError("Expected IDNotFoundError")
+    except gp.IDNotFoundError:
+        pass
+
+def test_find_downstream_vertices_disabled():
+    vertex_ids = [0, 2, 4, 5]
+    edge_ids = [1, 3, 4, 5]
+    edge_vertex_id_pairs = [(0, 2), (2, 4), (2, 5), (4, 5)]
+    edge_enabled = [True, False, True, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    assert processor.find_downstream_vertices(3) == []
