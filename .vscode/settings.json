@@ -1,4 +1,16 @@
 {
+    "statusbar_command.commands": [
+        {
+            "text": "$(symbol-event)Clean Branches",
+            "id": "runTask",
+            "name": "runTask",
+            "command": "workbench.action.tasks.runTask",
+            "arguments": [
+                "Clean Branches"
+            ]
+        }
+    ],
+    
     "python.testing.pytestArgs": [
         "--no-cov"
     ],

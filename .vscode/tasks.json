@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+        "label": "Clean Branches",
+        "type": "shell",
+        "command": "git fetch --prune && git branch -vv | awk '/: gone]/{print $1}' | xargs -r git branch -d",
+        "options": {
+            "shell": {
+            "executable": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "args": ["-c"]
+            }
+        },
+        "problemMatcher": []
+        }
+    ]
+}
