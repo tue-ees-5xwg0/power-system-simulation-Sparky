@@ -196,6 +196,7 @@ def test_disabled_edge_ignored_in_graph_construction():
     edge_ids_in_graph = {data["edge_id"] for _, _, data in processor.graph.edges(data=True)}
     assert edge_ids_in_graph == {1, 2, 3}
 
+
 def test_find_downstream_vertices_1():
     vertex_ids = [0, 2, 4]
     edge_ids = [1, 3]
@@ -213,6 +214,7 @@ def test_find_downstream_vertices_1():
 
     assert processor.find_downstream_vertices(1) == [2, 4]
 
+
 def test_find_downstream_vertices_2():
     vertex_ids = [0, 2, 4]
     edge_ids = [1, 3]
@@ -229,6 +231,7 @@ def test_find_downstream_vertices_2():
     )
 
     assert processor.find_downstream_vertices(3) == [4]
+
 
 def test_find_downstream_vertices_IdNotfound():
     vertex_ids = [0, 2, 4]
@@ -249,6 +252,7 @@ def test_find_downstream_vertices_IdNotfound():
         raise AssertionError("Expected IDNotFoundError")
     except gp.IDNotFoundError:
         pass
+
 
 def test_find_downstream_vertices_disabled():
     vertex_ids = [0, 2, 4, 5]
