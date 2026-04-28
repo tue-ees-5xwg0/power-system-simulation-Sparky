@@ -129,8 +129,32 @@ class GraphProcessor:
         Returns:
             A list of all downstream vertices.
         """
-        # put your implementation here
-        pass
+        if edge_id not in self.edge_id_to_enabled:
+            raise IDNotFoundError(f"Edge with id {edge_id} not found.")
+
+        if not self.edge_id_to_enabled[edge_id]:
+            return []
+
+        # The graph is a tree, so for any edge, one vertex is "closer" to the source.
+        # We can build a directed tree from the source to determine parent/child relationships.
+        directed_tree = nx.bfs_tree(self.graph, self.source_vertex_id)
+
+        u, v = self.edge_id_to_vertices[edge_id]
+
+        # In the directed tree, one vertex of the edge is the parent and the other is the child.
+        # The child vertex is the one further from the source, i.e., the downstream node.
+        if directed_tree.has_edge(u, v):
+            downstream_node = v
+        else:
+            # Because the original graph is connected and it's a tree, and the edge (u,v) exists,
+            # bfs_tree will always contain either edge (u,v) or (v,u).
+            downstream_node = u
+
+        # The downstream vertices are the downstream_node itself and all nodes reachable from it
+        # in the directed tree (its descendants).
+        descendants = nx.descendants(directed_tree, downstream_node)
+
+        return [downstream_node] + list(descendants)
 
     def find_alternative_edges(self, disabled_edge_id: int) -> list[int]:
         """
