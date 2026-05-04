@@ -276,12 +276,13 @@ def test_find_alternative_edges_invalid_edge_id():
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
     edge_vertex_id_pairs = [
-        (0, 2), #1
-        (0, 4), #3
-        (0, 6), #5
-        (2, 4), #7
-        (4, 6), #8
-        (2, 10),] #9
+        (0, 2),  # 1
+        (0, 4),  # 3
+        (0, 6),  # 5
+        (2, 4),  # 7
+        (4, 6),  # 8
+        (2, 10),
+    ]  # 9
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
 
@@ -304,12 +305,13 @@ def test_find_alternative_edges_disabled_edge_id():
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
     edge_vertex_id_pairs = [
-        (0, 2), #1
-        (0, 4), #3
-        (0, 6), #5
-        (2, 4), #7
-        (4, 6), #8
-        (2, 10),] #9
+        (0, 2),  # 1
+        (0, 4),  # 3
+        (0, 6),  # 5
+        (2, 4),  # 7
+        (4, 6),  # 8
+        (2, 10),
+    ]  # 9
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
 
@@ -332,12 +334,13 @@ def test_find_alternative_edges_no_alternatives():
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
     edge_vertex_id_pairs = [
-        (0, 2), #1
-        (0, 4), #3
-        (0, 6), #5
-        (2, 4), #7
-        (4, 6), #8
-        (2, 10),] #9
+        (0, 2),  # 1
+        (0, 4),  # 3
+        (0, 6),  # 5
+        (2, 4),  # 7
+        (4, 6),  # 8
+        (2, 10),
+    ]  # 9
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
 
@@ -356,12 +359,13 @@ def test_find_alternative_edges_valid_cases():
     vertex_ids = [0, 2, 4, 6, 10]
     edge_ids = [1, 3, 5, 7, 8, 9]
     edge_vertex_id_pairs = [
-        (0, 2), #1
-        (0, 4), #3
-        (0, 6), #5
-        (2, 4), #7
-        (4, 6), #8
-        (2, 10),] #9
+        (0, 2),  # 1
+        (0, 4),  # 3
+        (0, 6),  # 5
+        (2, 4),  # 7
+        (4, 6),  # 8
+        (2, 10),
+    ]  # 9
     edge_enabled = [True, True, True, False, False, True]
     source_vertex_id = 0
 
