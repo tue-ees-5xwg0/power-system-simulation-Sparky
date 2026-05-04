@@ -270,3 +270,109 @@ def test_find_downstream_vertices_disabled():
     )
 
     assert processor.find_downstream_vertices(3) == []
+
+
+def test_find_alternative_edges_invalid_edge_id():
+    vertex_ids = [0, 2, 4, 6, 10]
+    edge_ids = [1, 3, 5, 7, 8, 9]
+    edge_vertex_id_pairs = [
+        (0, 2), #1
+        (0, 4), #3
+        (0, 6), #5
+        (2, 4), #7
+        (4, 6), #8
+        (2, 10),] #9
+    edge_enabled = [True, True, True, False, False, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    try:
+        processor.find_alternative_edges(999)
+        raise AssertionError("Expected IDNotFoundError")
+    except gp.IDNotFoundError:
+        pass
+
+
+def test_find_alternative_edges_disabled_edge_id():
+    vertex_ids = [0, 2, 4, 6, 10]
+    edge_ids = [1, 3, 5, 7, 8, 9]
+    edge_vertex_id_pairs = [
+        (0, 2), #1
+        (0, 4), #3
+        (0, 6), #5
+        (2, 4), #7
+        (4, 6), #8
+        (2, 10),] #9
+    edge_enabled = [True, True, True, False, False, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    try:
+        processor.find_alternative_edges(7)
+        raise AssertionError("Expected EdgeAlreadyDisabledError")
+    except gp.EdgeAlreadyDisabledError:
+        pass
+
+
+def test_find_alternative_edges_no_alternatives():
+    vertex_ids = [0, 2, 4, 6, 10]
+    edge_ids = [1, 3, 5, 7, 8, 9]
+    edge_vertex_id_pairs = [
+        (0, 2), #1
+        (0, 4), #3
+        (0, 6), #5
+        (2, 4), #7
+        (4, 6), #8
+        (2, 10),] #9
+    edge_enabled = [True, True, True, False, False, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    assert processor.find_alternative_edges(9) == []
+
+
+def test_find_alternative_edges_valid_cases():
+    vertex_ids = [0, 2, 4, 6, 10]
+    edge_ids = [1, 3, 5, 7, 8, 9]
+    edge_vertex_id_pairs = [
+        (0, 2), #1
+        (0, 4), #3
+        (0, 6), #5
+        (2, 4), #7
+        (4, 6), #8
+        (2, 10),] #9
+    edge_enabled = [True, True, True, False, False, True]
+    source_vertex_id = 0
+
+    processor = gp.GraphProcessor(
+        vertex_ids,
+        edge_ids,
+        edge_vertex_id_pairs,
+        edge_enabled,
+        source_vertex_id,
+    )
+
+    assert set(processor.find_alternative_edges(1)) == {7}
+    assert set(processor.find_alternative_edges(3)) == {7, 8}
+    assert set(processor.find_alternative_edges(5)) == {8}
