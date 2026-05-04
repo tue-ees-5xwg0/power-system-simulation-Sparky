@@ -191,5 +191,30 @@ class GraphProcessor:
         Returns:
             A list of alternative edge ids.
         """
-        # put your implementation here
-        pass
+        # Check if the edge id is valid and currently enabled
+        if disabled_edge_id not in self.edge_id_to_enabled:
+            raise IDNotFoundError(f"Edge with id {disabled_edge_id} not found.")
+
+        if not self.edge_id_to_enabled[disabled_edge_id]:
+            raise EdgeAlreadyDisabledError(f"Edge with id {disabled_edge_id} is already disabled.")
+
+        # puts all downstream vertices in one component, and the rest of the vertices in another component.
+        downstream = set(self.find_downstream_vertices(disabled_edge_id))
+        if not downstream:
+            return []
+
+        upstream = set(self.vertex_ids) - downstream
+
+        alternatives = []
+
+        for edge_id, enabled in self.edge_id_to_enabled.items():
+            if enabled:
+                continue  # only consider currently disabled edges
+
+            u, v = self.edge_id_to_vertices[edge_id]
+
+            # Edge reconnects both components
+            if (u in downstream and v in upstream) or (u in upstream and v in downstream):
+                alternatives.append(edge_id)
+
+        return alternatives
