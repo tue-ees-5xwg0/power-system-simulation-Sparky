@@ -352,11 +352,29 @@ wheels = [
 ]
 
 [[package]]
+name = "power-grid-model"
+version = "1.13.73"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/2b/d57db993d635d433efb6ba712aaa1cbb041b5191d8ccbd7d54cafa71f862/power_grid_model-1.13.73.tar.gz", hash = "sha256:ed24b2d0c87a55237a1592feb1ef0e4f0547f520a271a278b3c9afba0517d44f", size = 1510764, upload-time = "2026-05-11T20:05:56.462Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/a5/2f923778cc6ac5a60bf67060af24d6331e196c77a28fcea500459cf597bf/power_grid_model-1.13.73-py3-none-macosx_13_0_arm64.whl", hash = "sha256:2ee1a965ce892a60826dd5704727aa4102ae41f89d50e54ab9ef02ebdaf62cb9", size = 2135462, upload-time = "2026-05-11T20:05:43.579Z" },
+    { url = "https://files.pythonhosted.org/packages/18/35/efc33b5d082fdfd1c93a135b0a4da10ea26f218141e32982d9a0040e5b2d/power_grid_model-1.13.73-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:39dd12d49cb3c9856903aa7255ecda4dd97e797faef1cb5847f5533699c61672", size = 2429714, upload-time = "2026-05-11T20:05:47.077Z" },
+    { url = "https://files.pythonhosted.org/packages/62/67/ea1d7a35f75c2de0e1a69b648c7b6149e38d6608d432133fbc4f0191d492/power_grid_model-1.13.73-py3-none-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3e2c619631654bf09919aa9752db6d815d5f8b1c572c5523aff63ef3ad914e8f", size = 2926841, upload-time = "2026-05-11T20:05:48.773Z" },
+    { url = "https://files.pythonhosted.org/packages/16/9a/a9df5b669a639d1c563ad49349e2bb824c2bf638e70077dc559d8284b46e/power_grid_model-1.13.73-py3-none-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a6bd2e4ee58332cb96199efa052b374107f81e3f489b3f8fe4e4d0b273a127b8", size = 3192687, upload-time = "2026-05-11T20:05:50.603Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/c8/dada62283b589f42ec127be6e14ac025b6b54504e51dca6747b5413d00d3/power_grid_model-1.13.73-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:9e0fc4aa5bd2fbad5054901ba4b360150ce63bce5e1c2e72f8c516781a719ba6", size = 3948717, upload-time = "2026-05-11T20:05:52.243Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/2f/26f89a13ff3b0a1157a53a72f832c6c7f2d7022581e8b1a113f1c4449456/power_grid_model-1.13.73-py3-none-win_amd64.whl", hash = "sha256:da65ebb65d9235167e9c4c8bdcc0554e21232808800c21ad269a5c74caa4755f", size = 877635, upload-time = "2026-05-11T20:05:54.427Z" },
+]
+
+[[package]]
 name = "power-system-simulation"
 version = "0.1"
 source = { editable = "." }
 dependencies = [
     { name = "networkx" },
+    { name = "power-grid-model" },
     { name = "scipy" },
 ]
 
@@ -381,6 +399,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "networkx", specifier = ">=3.6.1" },
+    { name = "power-grid-model", specifier = ">=1.12.0" },
     { name = "scipy", specifier = ">=1.17.1" },
 ]
 
