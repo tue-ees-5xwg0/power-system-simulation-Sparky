@@ -8,4 +8,3 @@ class ProfilesNotMatchingError(Exception):
 
 class GridModel:
     pass
-
