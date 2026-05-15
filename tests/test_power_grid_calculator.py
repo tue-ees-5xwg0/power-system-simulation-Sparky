@@ -1,14 +1,14 @@
+import pandas as pd
+
 from PowerGridModel.power_grid_calculator import (
     GridModel,
-    ValidationException,
     ProfilesNotMatchingError,
+    ValidationException,
     _validate_active_reactive_profiles,
     _validate_load_profile,
     _validate_power_grid_model,
-    _validate_profiles_match
+    _validate_profiles_match,
 )
-
-import pandas as pd
 
 FILE_PATH_VALID_INPUT = "tests/PGM_TestData/input"
 FILE_PATH_FALSE_INPUT = "tests/PGM_TestData/false_input"
