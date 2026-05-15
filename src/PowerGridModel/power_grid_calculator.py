@@ -14,19 +14,13 @@ class ValidationException(Exception):
 class ProfilesNotMatchingError(Exception):
     pass
 
+
 class GridModel:
-    def __init__(
-        self,
-        power_grid_model_path: str,
-        active_load_profiles_path: str,
-        reactive_load_profiles_path: str
-    ):
+    def __init__(self, power_grid_model_path: str, active_load_profiles_path: str, reactive_load_profiles_path: str):
         self._power_grid_model_dataset = _validate_power_grid_model(power_grid_model_path)
         self._active_load_profiles, self._reactive_load_profiles = _validate_active_reactive_profiles(
-            active_load_profiles_path,
-            reactive_load_profiles_path
+            active_load_profiles_path, reactive_load_profiles_path
         )
-
 
 
 def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
@@ -49,19 +43,17 @@ def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
     except PowerGridError as e:
         raise ValidationException("There was a internal error in the power grid model.") from e
 
+
 def _validate_active_reactive_profiles(
-        active_load_profiles_path: str,
-        reactive_load_profiles_path: str
-    ) -> tuple[DataFrame, DataFrame]:
+    active_load_profiles_path: str, reactive_load_profiles_path: str
+) -> tuple[DataFrame, DataFrame]:
     active_load_profiles = _validate_load_profile("Active", active_load_profiles_path)
     reactive_load_profiles = _validate_load_profile("Reactive", reactive_load_profiles_path)
     _validate_profiles_match(active_load_profiles, reactive_load_profiles)
     return active_load_profiles, reactive_load_profiles
 
-def _validate_load_profile(
-        Type: str,
-        load_profiles_path: str
-    ) -> DataFrame:
+
+def _validate_load_profile(Type: str, load_profiles_path: str) -> DataFrame:
     # check string is not empty
     if not load_profiles_path:
         raise ValidationException(f"{Type} load profiles path is required.")
@@ -79,9 +71,7 @@ def _validate_load_profile(
 
     return load_profiles
 
-def _validate_profiles_match(
-    active_load_profiles: DataFrame,
-    reactive_load_profiles: DataFrame
-) -> None:
+
+def _validate_profiles_match(active_load_profiles: DataFrame, reactive_load_profiles: DataFrame) -> None:
     if active_load_profiles.shape != reactive_load_profiles.shape:
         raise ProfilesNotMatchingError("Active and reactive load profiles do not match.")

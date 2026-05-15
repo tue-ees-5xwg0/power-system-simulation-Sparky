@@ -13,6 +13,7 @@ from PowerGridModel.power_grid_calculator import (
 FILE_PATH_VALID_INPUT = "tests/PGM_TestData/input"
 FILE_PATH_FALSE_INPUT = "tests/PGM_TestData/false_input"
 
+
 def test_validate_power_grid_model():
     # Test with valid input
     try:
@@ -48,45 +49,38 @@ def test_validate_power_grid_model():
     except ValidationException:
         pass
 
+
 def test_validate_load_profiles():
     # Test with valid input
     try:
         _validate_active_reactive_profiles(
             FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
-            FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet"
+            FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
         )
     except ValidationException:
         raise AssertionError("ValidationException was raised for valid input.") from None
 
     # Test with invalid file path
     try:
-        _validate_load_profile(
-            "Test",
-            FILE_PATH_FALSE_INPUT + "/invalid_active_path.parquet"
-        )
+        _validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/invalid_active_path.parquet")
         raise AssertionError("ValidationException was not raised for invalid file path.")
     except ValidationException:
         pass
 
     # Test with invalid file extension
     try:
-        _validate_load_profile(
-            "Test",
-            FILE_PATH_FALSE_INPUT + "/wrong.extension"
-        )
+        _validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/wrong.extension")
         raise AssertionError("ValidationException was not raised for invalid file extension.")
     except ValidationException:
         pass
 
     # Test with empty string
     try:
-        _validate_load_profile(
-            "Test",
-            ""
-        )
+        _validate_load_profile("Test", "")
         raise AssertionError("ValidationException was not raised for empty string.")
     except ValidationException:
         pass
+
 
 def test_validate_profiles_match():
     # Test with matching profiles
@@ -105,13 +99,14 @@ def test_validate_profiles_match():
     except ProfilesNotMatchingError:
         pass
 
+
 def test_valid_model_and_profiles():
     # Test with valid model and profiles
     try:
         GridModel(
             power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
             active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
-            reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet"
+            reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
         )
     except ValidationException:
         raise AssertionError("ValidationException was raised for valid model and profiles.") from None
