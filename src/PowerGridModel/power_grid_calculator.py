@@ -29,13 +29,13 @@ class _InputValidator:
             raise ValidationException(f"Power grid model file must be a JSON file: {power_grid_model_path}")
         # try to deserialize file
         try:
-            return json_deserialize(power_grid_model_path)
+            with open(power_grid_model_path) as f:
+                power_grid_model_data = json_deserialize(f.read())
+            return power_grid_model_data
         except ValueError as e:
             raise ValidationException("Power grid model data is inconsistent or a component is unknown.") from e
         except PowerGridError as e:
             raise ValidationException("There was a internal error in the power grid model.") from e
-        except Exception as e:
-            raise ValidationException("Unexpected error occurred.") from e
 
     @staticmethod
     def _validate_load_profiles(
