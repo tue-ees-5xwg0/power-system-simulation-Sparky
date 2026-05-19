@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from power_grid_model._core.data_types import Dataset
@@ -22,6 +23,22 @@ class GridModel:
             active_load_profiles_path, reactive_load_profiles_path
         )
 
+    def _create_pgm_batch_dataset(self) -> dict:
+        timestamps = self._active_load_profiles.index
+        load_ids = [col for col in self._active_load_profiles.columns if col != 'Timestamp']
+
+        sym_load_updates = []
+        for ts in timestamps:
+            ts_updates = []
+            for load_id in load_ids:
+                ts_updates.append({
+                    "id": int(load_id),
+                    "p_specified": float(self._active_load_profiles.loc[ts, load_id]),
+                    "q_specified": float(self._reactive_load_profiles.loc[ts, load_id])
+                })
+            sym_load_updates.append(np.array(ts_updates, dtype=self.model.get_component_type("sym_load")))
+
+        return {"sym_load": sym_load_updates}
 
 def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
     # check string is not empty
