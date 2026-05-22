@@ -55,8 +55,8 @@ class GridModel:
         df_node_results.set_index("Timestamp", inplace=True)
 
         return df_node_results
-    
-    def _table_row_per_line(self, preParseDataSet: dict) -> Dataset:
+
+    def _output_table_row_per_line(self, preParseDataSet: dict) -> Dataset:
         line_data = preParseDataSet.get(ComponentType.line, preParseDataSet.get("line"))
         if line_data is None:
             raise ValueError("Line results not found in power flow output.")
@@ -96,11 +96,11 @@ class GridModel:
         result = pd.DataFrame(
             {
                 "Line_ID": line_ids,
-                "Total_Loss": total_loss_kwh,
-                "Max_Loading": max_loading,
-                "Max_Loading_Timestamp": max_loading_ts,
-                "Min_Loading": min_loading,
-                "Min_Loading_Timestamp": min_loading_ts,
+                "Total_loss": total_loss_kwh,
+                "Max_loading": max_loading,
+                "Max_loading_Timestamp": max_loading_ts,
+                "Min_loading": min_loading,
+                "Min_loading_Timestamp": min_loading_ts,
             }
         ).set_index("Line_ID")
 
