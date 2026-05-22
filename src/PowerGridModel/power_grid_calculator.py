@@ -26,7 +26,9 @@ class GridModel:
 
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
         preParseDataSet = self._RunModel(*args, **kwargs)
-        pass
+        node_results = self._output_table_row_per_timestamp(preParseDataSet)
+        line_results = self._output_table_row_per_line(preParseDataSet)
+        return node_results, line_results
 
     def _RunModel(self, *args, **kwargs) -> Dataset:
         pass
