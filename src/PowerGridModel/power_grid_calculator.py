@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from power_grid_model import ComponentType
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
 from power_grid_model.utils import json_deserialize
@@ -25,11 +26,61 @@ class GridModel:
 
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
         preParseDataSet = self._RunModel(*args, **kwargs)
-        
+
         pass
 
     def _RunModel(self, *args, **kwargs) -> Dataset:
         pass
+
+    def _table_row_per_line(self, preParseDataSet: dict) -> Dataset:
+        line_data = preParseDataSet.get(ComponentType.line, preParseDataSet.get("line"))
+        if line_data is None:
+            raise ValueError("Line results not found in power flow output.")
+
+        timestamps = pd.Index(self._active_load_profiles.index)
+        if line_data.ndim == 1:
+            line_data = line_data[np.newaxis, :]
+        if line_data.shape[0] != len(timestamps):
+            raise ValueError("Timestamp count does not match number of batch results.")
+
+        p_loss = line_data["p_from"] + line_data["p_to"]
+        loading = line_data["loading"]
+
+        if len(timestamps) > 1:
+            dt_hours = ((timestamps[1:] - timestamps[:-1]) / pd.Timedelta(hours=1)).to_numpy()
+            total_loss_kwh = (0.5 * (p_loss[:-1] + p_loss[1:]) * dt_hours[:, None]).sum(axis=0) / 1000.0
+        else:
+            total_loss_kwh = np.zeros(line_data.shape[1], dtype=float)
+
+        max_loading = np.full(line_data.shape[1], np.nan, dtype=float)
+        min_loading = np.full(line_data.shape[1], np.nan, dtype=float)
+        max_loading_ts = [pd.NaT] * line_data.shape[1]
+        min_loading_ts = [pd.NaT] * line_data.shape[1]
+
+        for idx in range(line_data.shape[1]):
+            series = loading[:, idx]
+            if np.all(np.isnan(series)):
+                continue
+            max_idx = int(np.nanargmax(series))
+            min_idx = int(np.nanargmin(series))
+            max_loading[idx] = series[max_idx]
+            min_loading[idx] = series[min_idx]
+            max_loading_ts[idx] = timestamps[max_idx]
+            min_loading_ts[idx] = timestamps[min_idx]
+
+        line_ids = line_data[0]["id"]
+        result = pd.DataFrame(
+            {
+                "Line_ID": line_ids,
+                "Total_Loss": total_loss_kwh,
+                "Max_Loading": max_loading,
+                "Max_Loading_Timestamp": max_loading_ts,
+                "Min_Loading": min_loading,
+                "Min_Loading_Timestamp": min_loading_ts,
+            }
+        ).set_index("Line_ID")
+
+        return result
 
     def _create_pgm_batch_dataset(self) -> dict:
         timestamps = self._active_load_profiles.index
