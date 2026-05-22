@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
+from power_grid_model import PowerGridModel
 from power_grid_model import ComponentType
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
@@ -23,6 +24,9 @@ class GridModel:
         self._active_load_profiles, self._reactive_load_profiles = _validate_active_reactive_profiles(
             active_load_profiles_path, reactive_load_profiles_path
         )
+        self._model = self._initialize_model()
+        self._pgm_batch_dataset = self._create_pgm_batch_dataset()
+
 
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
         preParseDataSet = self._RunModel(*args, **kwargs)
@@ -31,7 +35,23 @@ class GridModel:
         return node_results, line_results
 
     def _RunModel(self, *args, **kwargs) -> Dataset:
-        pass
+        # Create batch update dataset
+
+        try:
+            # Run time-series (batch) power flow calculation
+            results = self.model.calculate_power_flow(
+                *args, update_data=self._pgm_batch_dataset,
+                symmetric=True  # standard for sym_load grids
+                , **kwargs
+            )
+            return results
+
+        except PowerGridError as e:
+        # Pass through as required by assignment
+            raise ValidationException("Batch dataset is invalid or power flow failed.") from e
+
+    def _initialize_model(self) -> PowerGridModel:
+        return PowerGridModel(self._power_grid_model_dataset)
 
     def _output_table_row_per_timestamp(self, preParseDataSet: Dataset) -> Dataset:
         timestamps = self._active_load_profiles.index
@@ -121,7 +141,7 @@ class GridModel:
                     "p_specified": float(self._active_load_profiles.loc[ts, load_id]),
                     "q_specified": float(self._reactive_load_profiles.loc[ts, load_id])
                 })
-            sym_load_updates.append(np.array(ts_updates, dtype=self.model.get_component_type("sym_load")))
+            sym_load_updates.append(np.array(ts_updates, dtype=self._model.get_component_type("sym_load")))
 
         return {"sym_load": sym_load_updates}
 
