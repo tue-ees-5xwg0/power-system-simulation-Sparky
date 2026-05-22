@@ -23,6 +23,14 @@ class GridModel:
             active_load_profiles_path, reactive_load_profiles_path
         )
 
+    def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
+        preParseDataSet = self._RunModel(*args, **kwargs)
+        
+        pass
+
+    def _RunModel(self, *args, **kwargs) -> Dataset:
+        pass
+
     def _create_pgm_batch_dataset(self) -> dict:
         timestamps = self._active_load_profiles.index
         load_ids = [col for col in self._active_load_profiles.columns if col != 'Timestamp']
