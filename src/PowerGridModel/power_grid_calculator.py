@@ -34,27 +34,8 @@ class GridModel:
         node_results = self._output_table_row_per_timestamp(preParseDataSet)
         line_results = self._output_table_row_per_line(preParseDataSet)
         return node_results, line_results
-        raw_results = self._RunModel(*args, **kwargs)
-        pass  # placeholder for any post-processing of raw_results if needed, currently just returning raw results
 
-    def _RunModel(self, *args, **kwargs) -> Dataset:
-        # Create batch update dataset
-
-        try:
-            # Run time-series (batch) power flow calculation
-            results = self._model.calculate_power_flow(
-                *args, update_data=self._pgm_batch_dataset,
-                symmetric=True  # standard for sym_load grids
-                , **kwargs
-            )
-            return results
-
-        except PowerGridError as e:
-        # Pass through as required by assignment
-            raise ValidationException("Batch dataset is invalid or power flow failed.") from e
-
-    def _initialize_model(self) -> PowerGridModel:
-        return PowerGridModel(self._power_grid_model_dataset)
+    def _RunModel(self, *args, **kwargs) -> dict:
         # Create batch update dataset
 
         try:
@@ -73,7 +54,7 @@ class GridModel:
     def _initialize_model(self) -> PowerGridModel:
         return PowerGridModel(self._power_grid_model_dataset)
 
-    def _output_table_row_per_timestamp(self, preParseDataSet: Dataset) -> Dataset:
+    def _output_table_row_per_timestamp(self, preParseDataSet: dict) -> Dataset:
         timestamps = self._active_load_profiles.index
         node_results = []
 
