@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from power_grid_model import PowerGridModel
+from power_grid_model import PowerGridModel, power_grid_meta_data
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
 from power_grid_model.utils import json_deserialize
@@ -28,16 +28,15 @@ class GridModel:
 
 
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
-        preParseDataSet = self._RunModel(*args, **kwargs)
-
-        pass
+        raw_results = self._RunModel(*args, **kwargs)
+        pass  # placeholder for any post-processing of raw_results if needed, currently just returning raw results
 
     def _RunModel(self, *args, **kwargs) -> Dataset:
         # Create batch update dataset
 
         try:
             # Run time-series (batch) power flow calculation
-            results = self.model.calculate_power_flow(
+            results = self._model.calculate_power_flow(
                 *args, update_data=self._pgm_batch_dataset,
                 symmetric=True  # standard for sym_load grids
                 , **kwargs
@@ -55,18 +54,25 @@ class GridModel:
         timestamps = self._active_load_profiles.index
         load_ids = [col for col in self._active_load_profiles.columns if col != 'Timestamp']
 
+        update_meta = power_grid_meta_data["update"]["sym_load"]
+        sym_load_dtype = update_meta.dtype
+        status_nan = update_meta.nan_scalar["status"][0]
+
         sym_load_updates = []
         for ts in timestamps:
             ts_updates = []
             for load_id in load_ids:
-                ts_updates.append({
-                    "id": int(load_id),
-                    "p_specified": float(self._active_load_profiles.loc[ts, load_id]),
-                    "q_specified": float(self._reactive_load_profiles.loc[ts, load_id])
-                })
-            sym_load_updates.append(np.array(ts_updates, dtype=self._model.get_component_type("sym_load")))
+                ts_updates.append(
+                    (
+                        int(load_id),
+                        status_nan,
+                        float(self._active_load_profiles.loc[ts, load_id]),
+                        float(self._reactive_load_profiles.loc[ts, load_id]),
+                    )
+                )
+            sym_load_updates.append(np.array(ts_updates, dtype=sym_load_dtype))
 
-        return {"sym_load": sym_load_updates}
+        return {"sym_load": np.stack(sym_load_updates, axis=0)}
 
 def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
     # check string is not empty
