@@ -25,11 +25,35 @@ class GridModel:
 
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
         preParseDataSet = self._RunModel(*args, **kwargs)
-        
         pass
 
     def _RunModel(self, *args, **kwargs) -> Dataset:
         pass
+
+    def _output_table_row_per_timestamp(self, preParseDataSet: Dataset) -> Dataset:
+        timestamps = self._active_load_profiles.index
+        node_results = []
+
+        for i, ts in enumerate(timestamps):
+            node_data = preParseDataSet["node"][i]
+
+            node_voltages = node_data["voltages"]
+            node_ids = node_data["id"]
+
+            max_voltage = np.max(node_voltages)
+            min_voltage = np.min(node_voltages)
+
+            node_results.append({
+                "Timestamp": ts,
+                "Max_voltage": float(node_voltages[max_voltage]),
+                "Max_voltage_node_id": int(node_ids[max_voltage]),
+                "Min_voltage": float(node_voltages[min_voltage]),
+                "Min_voltage_node_id": int(node_ids[min_voltage])
+            })
+        df_node_results = pd.DataFrame(node_results)
+        df_node_results.set_index("Timestamp", inplace=True)
+
+        return df_node_results
 
     def _create_pgm_batch_dataset(self) -> dict:
         timestamps = self._active_load_profiles.index
