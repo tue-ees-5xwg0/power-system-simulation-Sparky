@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from PowerGridModel.power_grid_calculator import (
     GridModel,
@@ -172,3 +173,62 @@ def test_validate_profiles_mismatch_timestamp():
         raise AssertionError("ProfilesNotMatchingError was not raised for mismatched timestamps.")
     except ProfilesNotMatchingError:
         pass
+
+#Test case to run a valid and invalid batch run
+def test_valid_batch_run():
+
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+
+    try:
+        model.AggregateResults()
+    except Exception as e:
+        raise AssertionError(f"Valid batch run crashed unexpectedly during execution: {e}") from None
+
+def test_invalid_batch_run():
+
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+
+    model._active_load_profiles = model._active_load_profiles * 1e9
+
+    try:
+        model.AggregateResults()
+        raise AssertionError("Invalid batch run did not raise an exception as expected.")
+    except ValidationException:
+        pass
+
+def  test_full_system_accuracy_againts_expected_results():
+
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+
+    calculated_timestamp_table, calculated_line_table = model.AggregateResults()
+
+    expected_timestamp_table = pd.read_parquet(FILE_PATH_VALID_INPUT + "/output_table_row_per_timestamp.parquet")
+    expected_line_table = pd.read_parquet(FILE_PATH_VALID_INPUT + "/output_table_row_per_line.parquet")
+
+    try:
+        assert_frame_equal(calculated_timestamp_table, expected_timestamp_table, check_exact=False, rtol=1e-5)
+    except AssertionError as e:
+        raise AssertionError(
+            "The calculated Timestamp (Node) Table does not match the expected output!\n"
+            f"Details: {e}"
+        ) from None
+
+    try:
+        assert_frame_equal(calculated_line_table, expected_line_table, check_exact=False, rtol=1e-5)
+    except AssertionError as e:
+        raise AssertionError(
+            "The calculated Line Table does not match the expected output!\n"
+            f"Details: {e}"
+        ) from None
