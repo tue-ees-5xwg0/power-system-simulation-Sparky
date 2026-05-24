@@ -1,21 +1,26 @@
+from pathlib import Path
+
 import pandas as pd
 
-# Update this path if you are running it from a different folder
-file_path = "tests/PGM_TestData/input/active_power_profile.parquet"
+# Safely resolve the path relative to the current script's directory
+file_path = Path(__file__).parent / "PGM_TestData" / "input" / "active_power_profile.parquet"
 
-# Load the file
 df = pd.read_parquet(file_path)
 
-# 1. Look at the actual table layout
 print("--- FIRST 5 ROWS ---")
 print(df.head())
 
-# 2. Look at the exact data types and structure
 print("\n--- DATAFRAME INFO ---")
-print(df.info())
+df.info()
 
-# 3. Check what the index and columns are explicitly named
 print("\n--- INDEX ---")
 print(df.index.name)
 print("\n--- COLUMNS ---")
 print(df.columns)
+
+active_profiles = pd.DataFrame(
+    {1: [100.0, 200.0], 2: [100.0, 220.0]},
+    index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+)
+
+print(active_profiles.head())
