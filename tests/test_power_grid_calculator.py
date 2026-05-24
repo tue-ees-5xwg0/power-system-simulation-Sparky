@@ -138,3 +138,37 @@ def test_expected_output():
 
     pd.testing.assert_frame_equal(output_row_per_line, expected_row_per_line, **PD_ASSERT_FRAME_EQUAL_KWARGS)
     pd.testing.assert_frame_equal(output_row_per_timestamp, expected_row_per_timestamp, **PD_ASSERT_FRAME_EQUAL_KWARGS)
+
+#Test case to validate profile ID mismatch
+def test_validate_profiles_mismatch_load_ids():
+    active_profiles = pd.DataFrame(
+        {1: [100.0, 200.0], 2: [100.0, 220.0]},
+        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+    )
+    reactive_profiles = pd.DataFrame(
+        {1: [100.0, 200.0], 3: [100.0, 220.0]},
+        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+    )
+
+    try:
+        _validate_profiles_match(active_profiles, reactive_profiles)
+        raise AssertionError("ProfilesNotMatchingError was not raised for mismatched load IDs.")
+    except ProfilesNotMatchingError:
+        pass
+
+#Testcase to validate profile timestamp mismatch
+def test_validate_profiles_mismatch_timestamp():
+    active_profiles = pd.DataFrame(
+        {1: [100.0, 200.0], 2: [100.0, 220.0]},
+        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+    )
+    reactive_profiles = pd.DataFrame(
+        {1: [100.0, 200.0], 2: [100.0, 220.0]},
+        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:30"])
+    )
+
+    try:
+        _validate_profiles_match(active_profiles, reactive_profiles)
+        raise AssertionError("ProfilesNotMatchingError was not raised for mismatched timestamps.")
+    except ProfilesNotMatchingError:
+        pass
