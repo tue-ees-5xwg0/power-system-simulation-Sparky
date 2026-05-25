@@ -54,32 +54,49 @@ class GridModel:
     def _initialize_model(self) -> PowerGridModel:
         return PowerGridModel(self._power_grid_model_dataset)
 
-    def _output_table_row_per_timestamp(self, preParseDataSet: dict) -> Dataset:
-        timestamps = self._active_load_profiles.index
-        node_results = []
+    def _output_table_row_per_timestamp(self, preParseDataSet: dict) -> DataFrame:
+        node_data = preParseDataSet.get(ComponentType.node, preParseDataSet.get("node"))
+        if node_data is None:
+            raise ValueError("Node results not found in power flow output.")
 
-        for i, ts in enumerate(timestamps):
-            node_data = preParseDataSet["node"][i]
+        timestamps = pd.Index(self._active_load_profiles.index)
+        if node_data.ndim == 1:
+            node_data = node_data[np.newaxis, :]
+        if node_data.shape[0] != len(timestamps):
+            raise ValueError("Timestamp count does not match number of batch results.")
 
-            node_voltages = node_data["voltages"]
-            node_ids = node_data["id"]
+        voltages = node_data["u_pu"]
+        node_ids = node_data[0]["id"]
 
-            max_voltage = np.max(node_voltages)
-            min_voltage = np.min(node_voltages)
+        max_voltage = np.full(len(timestamps), np.nan, dtype=float)
+        min_voltage = np.full(len(timestamps), np.nan, dtype=float)
+        max_voltage_node = np.full(len(timestamps), np.nan, dtype=float)
+        min_voltage_node = np.full(len(timestamps), np.nan, dtype=float)
 
-            node_results.append({
-                "Timestamp": ts,
-                "Max_voltage": float(node_voltages[max_voltage]),
-                "Max_voltage_node_id": int(node_ids[max_voltage]),
-                "Min_voltage": float(node_voltages[min_voltage]),
-                "Min_voltage_node_id": int(node_ids[min_voltage])
-            })
-        df_node_results = pd.DataFrame(node_results)
-        df_node_results.set_index("Timestamp", inplace=True)
+        for idx in range(len(timestamps)):
+            series = voltages[idx]
+            if np.all(np.isnan(series)):
+                continue
+            max_idx = int(np.nanargmax(series))
+            min_idx = int(np.nanargmin(series))
+            max_voltage[idx] = series[max_idx]
+            min_voltage[idx] = series[min_idx]
+            max_voltage_node[idx] = node_ids[max_idx]
+            min_voltage_node[idx] = node_ids[min_idx]
 
-        return df_node_results
+        result = pd.DataFrame(
+            {
+                "Timestamp": timestamps,
+                "Max_Voltage": max_voltage,
+                "Max_Voltage_Node": max_voltage_node,
+                "Min_Voltage": min_voltage,
+                "Min_Voltage_Node": min_voltage_node,
+            }
+        ).set_index("Timestamp")
 
-    def _output_table_row_per_line(self, preParseDataSet: dict) -> Dataset:
+        return result
+
+    def _output_table_row_per_line(self, preParseDataSet: dict) -> DataFrame:
         line_data = preParseDataSet.get(ComponentType.line, preParseDataSet.get("line"))
         if line_data is None:
             raise ValueError("Line results not found in power flow output.")
