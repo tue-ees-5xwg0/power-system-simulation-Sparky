@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from power_grid_model import PowerGridModel
+
 from power_grid_model import ComponentType
 from power_grid_model import PowerGridModel, power_grid_meta_data
 from power_grid_model._core.data_types import Dataset
@@ -119,11 +119,11 @@ class GridModel:
         result = pd.DataFrame(
             {
                 "Line_ID": line_ids,
-                "Total_loss": total_loss_kwh,
-                "Max_loading": max_loading,
-                "Max_loading_Timestamp": max_loading_ts,
-                "Min_loading": min_loading,
-                "Min_loading_Timestamp": min_loading_ts,
+                "Total_Loss": total_loss_kwh,
+                "Max_Loading": max_loading,
+                "Max_Loading_Timestamp": max_loading_ts,
+                "Min_Loading": min_loading,
+                "Min_Loading_Timestamp": min_loading_ts,
             }
         ).set_index("Line_ID")
 
