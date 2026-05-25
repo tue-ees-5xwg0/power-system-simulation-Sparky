@@ -3,9 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-
-from power_grid_model import ComponentType
-from power_grid_model import PowerGridModel, power_grid_meta_data
+from power_grid_model import ComponentType, PowerGridModel, power_grid_meta_data
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
 from power_grid_model.utils import json_deserialize
@@ -28,7 +26,6 @@ class GridModel:
         self._model = self._initialize_model()
         self._pgm_batch_dataset = self._create_pgm_batch_dataset()
 
-
     def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
         preParseDataSet = self._RunModel(*args, **kwargs)
         node_results = self._output_table_row_per_timestamp(preParseDataSet)
@@ -41,14 +38,15 @@ class GridModel:
         try:
             # Run time-series (batch) power flow calculation
             results = self._model.calculate_power_flow(
-                *args, update_data=self._pgm_batch_dataset,
-                symmetric=True  # standard for sym_load grids
-                , **kwargs
+                *args,
+                update_data=self._pgm_batch_dataset,
+                symmetric=True,  # standard for sym_load grids
+                **kwargs,
             )
             return results
 
         except PowerGridError as e:
-        # Pass through as required by assignment
+            # Pass through as required by assignment
             raise ValidationException("Batch dataset is invalid or power flow failed.") from e
 
     def _initialize_model(self) -> PowerGridModel:
@@ -148,7 +146,7 @@ class GridModel:
 
     def _create_pgm_batch_dataset(self) -> dict:
         timestamps = self._active_load_profiles.index
-        load_ids = [col for col in self._active_load_profiles.columns if col != 'Timestamp']
+        load_ids = [col for col in self._active_load_profiles.columns if col != "Timestamp"]
 
         update_meta = power_grid_meta_data["update"]["sym_load"]
         sym_load_dtype = update_meta.dtype
@@ -169,6 +167,7 @@ class GridModel:
             sym_load_updates.append(np.array(ts_updates, dtype=sym_load_dtype))
 
         return {"sym_load": np.stack(sym_load_updates, axis=0)}
+
 
 def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
     # check string is not empty
