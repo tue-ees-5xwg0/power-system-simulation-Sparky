@@ -12,7 +12,10 @@ from PowerGridModel.power_grid_calculator import (
 
 FILE_PATH_VALID_INPUT = "tests/PGM_TestData/input"
 FILE_PATH_FALSE_INPUT = "tests/PGM_TestData/false_input"
+FILE_PATH_EXPECTED_OUTPUT = "tests/PGM_TestData/expected_output"
 
+ASSERT_MAX_RTOLERANCE = 1e-6
+ASSERT_MAX_ATOLERANCE = 1e-6
 
 def test_validate_power_grid_model():
     # Test with valid input
@@ -110,3 +113,19 @@ def test_valid_model_and_profiles():
         )
     except ValidationException:
         raise AssertionError("ValidationException was raised for valid model and profiles.") from None
+
+def test_expected_output():
+    # Test that the output matches expected output
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+    
+    output_row_per_timestamp, output_row_per_line = model.AggregateResults()
+
+    expected_row_per_line = pd.read_parquet(FILE_PATH_EXPECTED_OUTPUT + "/output_table_row_per_line.parquet")
+    expected_row_per_timestamp = pd.read_parquet(FILE_PATH_EXPECTED_OUTPUT + "/output_table_row_per_timestamp.parquet")
+
+    pd.testing.assert_frame_equal(output_row_per_line, expected_row_per_line, check_dtype=False, check_index_type=False, rtol=ASSERT_MAX_RTOLERANCE, atol=ASSERT_MAX_ATOLERANCE)
+    pd.testing.assert_frame_equal(output_row_per_timestamp, expected_row_per_timestamp, check_dtype=False, check_index_type=False, rtol=ASSERT_MAX_RTOLERANCE, atol=ASSERT_MAX_ATOLERANCE)
