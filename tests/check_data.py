@@ -19,8 +19,7 @@ print("\n--- COLUMNS ---")
 print(df.columns)
 
 active_profiles = pd.DataFrame(
-    {1: [100.0, 200.0], 2: [100.0, 220.0]},
-    index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+    {1: [100.0, 200.0], 2: [100.0, 220.0]}, index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
 )
 
 print(active_profiles.head())

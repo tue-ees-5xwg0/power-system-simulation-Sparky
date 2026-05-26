@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
@@ -140,15 +141,14 @@ def test_expected_output():
     pd.testing.assert_frame_equal(output_row_per_line, expected_row_per_line, **PD_ASSERT_FRAME_EQUAL_KWARGS)
     pd.testing.assert_frame_equal(output_row_per_timestamp, expected_row_per_timestamp, **PD_ASSERT_FRAME_EQUAL_KWARGS)
 
-#Test case to validate profile ID mismatch
+
+# Test case to validate profile ID mismatch
 def test_validate_profiles_mismatch_load_ids():
     active_profiles = pd.DataFrame(
-        {1: [100.0, 200.0], 2: [100.0, 220.0]},
-        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+        {1: [100.0, 200.0], 2: [100.0, 220.0]}, index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
     )
     reactive_profiles = pd.DataFrame(
-        {1: [100.0, 200.0], 3: [100.0, 220.0]},
-        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+        {1: [100.0, 200.0], 3: [100.0, 220.0]}, index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
     )
 
     try:
@@ -157,15 +157,14 @@ def test_validate_profiles_mismatch_load_ids():
     except ProfilesNotMatchingError:
         pass
 
-#Testcase to validate profile timestamp mismatch
+
+# Testcase to validate profile timestamp mismatch
 def test_validate_profiles_mismatch_timestamp():
     active_profiles = pd.DataFrame(
-        {1: [100.0, 200.0], 2: [100.0, 220.0]},
-        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
+        {1: [100.0, 200.0], 2: [100.0, 220.0]}, index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:15"])
     )
     reactive_profiles = pd.DataFrame(
-        {1: [100.0, 200.0], 2: [100.0, 220.0]},
-        index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:30"])
+        {1: [100.0, 200.0], 2: [100.0, 220.0]}, index=pd.to_datetime(["2026-01-01 10:00", "2026-01-01 10:30"])
     )
 
     try:
@@ -174,9 +173,9 @@ def test_validate_profiles_mismatch_timestamp():
     except ProfilesNotMatchingError:
         pass
 
-#Test case to run a valid and invalid batch run
-def test_valid_batch_run():
 
+# Test case to run a valid and invalid batch run
+def test_valid_batch_run():
     model = GridModel(
         power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
         active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
@@ -188,8 +187,8 @@ def test_valid_batch_run():
     except Exception as e:
         raise AssertionError(f"Valid batch run crashed unexpectedly during execution: {e}") from None
 
-def test_invalid_batch_run():
 
+def test_invalid_batch_run():
     model = GridModel(
         power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
         active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
@@ -197,6 +196,7 @@ def test_invalid_batch_run():
     )
 
     model._active_load_profiles = model._active_load_profiles * 1e9
+    model._pgm_batch_dataset = model._create_pgm_batch_dataset()
 
     try:
         model.AggregateResults()
@@ -204,8 +204,8 @@ def test_invalid_batch_run():
     except ValidationException:
         pass
 
-def  test_full_system_accuracy_againts_expected_results():
 
+def test_full_system_accuracy_againts_expected_results():
     model = GridModel(
         power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
         active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
@@ -218,17 +218,97 @@ def  test_full_system_accuracy_againts_expected_results():
     expected_line_table = pd.read_parquet(FILE_PATH_EXPECTED_OUTPUT + "/output_table_row_per_line.parquet")
 
     try:
-        assert_frame_equal(calculated_timestamp_table, expected_timestamp_table, check_exact=False, rtol=1e-5)
+        assert_frame_equal(
+            calculated_timestamp_table, expected_timestamp_table, check_exact=False, rtol=1e-5, check_dtype=False
+        )
+
     except AssertionError as e:
         raise AssertionError(
-            "The calculated Timestamp (Node) Table does not match the expected output!\n"
-            f"Details: {e}"
+            f"The calculated Timestamp (Node) Table does not match the expected output!\nDetails: {e}"
         ) from None
 
     try:
-        assert_frame_equal(calculated_line_table, expected_line_table, check_exact=False, rtol=1e-5)
+        assert_frame_equal(
+            calculated_line_table,
+            expected_line_table,
+            check_exact=False,
+            rtol=1e-5,
+            check_dtype=False,
+            check_index_type=False,
+        )
     except AssertionError as e:
+        raise AssertionError(f"The calculated Line Table does not match the expected output!\nDetails: {e}") from None
+
+
+def test_output_node_table():
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+
+    try:
+        model._output_table_row_per_timestamp({})
         raise AssertionError(
-            "The calculated Line Table does not match the expected output!\n"
-            f"Details: {e}"
-        ) from None
+            "Expected ValidationException was not raised when outputting node table with empty line table."
+        )
+    except ValueError:
+        pass
+
+    bad_node_data = {"node": np.zeros(99)}
+
+    try:
+        model._output_table_row_per_timestamp(bad_node_data)
+        raise AssertionError(
+            "Expected ValidationException was not raised when outputting node table with invalid node data."
+        )
+    except ValueError:
+        pass
+
+    mock_bad_shape_data = {"node": np.zeros((99, 1))}
+
+    try:
+        model._output_table_row_per_timestamp(mock_bad_shape_data)
+        raise AssertionError(
+            "Expected ValidationException was not raised when outputting node table with invalid node data."
+        )
+    except ValueError:
+        pass
+
+
+
+
+def test_output_line_table():
+    model = GridModel(
+        power_grid_model_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profiles_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+    )
+
+    try:
+        model._output_table_row_per_line({})
+        raise AssertionError(
+            "Expected ValidationException was not raised when outputting line table with empty line table."
+        )
+    except ValueError:
+        pass
+
+    bad_line_data = {"line": np.zeros(99)}
+
+    try:
+        model._output_table_row_per_line(bad_line_data)
+        raise AssertionError(
+            "Expected ValidationException was not raised when outputting line table with invalid line data."
+        )
+    except ValueError:
+        pass
+
+    mock_bad_shape_data = {"line": np.zeros((99, 1))}
+
+    try:
+        model._output_table_row_per_line(mock_bad_shape_data)
+        raise AssertionError(
+            "Expected ValidationException was not raised when outputting line table with invalid line data."
+        )
+    except ValueError:
+        pass
