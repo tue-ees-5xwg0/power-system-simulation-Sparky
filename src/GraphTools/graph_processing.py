@@ -200,8 +200,6 @@ class GraphProcessor:
 
         # puts all downstream vertices in one component, and the rest of the vertices in another component.
         downstream = set(self.find_downstream_vertices(disabled_edge_id))
-        if not downstream:
-            return []
 
         upstream = set(self.vertex_ids) - downstream
 
