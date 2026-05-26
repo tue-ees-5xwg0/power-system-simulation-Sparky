@@ -96,15 +96,15 @@ def test_validate_load_profiles():
 
 def test_validate_profiles_match():
     # Test with matching profiles
-    active_profiles = pd.DataFrame({"node": [1, 2, 3], "active_load": [100, 200, 300]})
-    reactive_profiles = pd.DataFrame({"node": [1, 2, 3], "reactive_load": [50, 100, 150]})
+    active_profiles = pd.DataFrame({1: [100, 200, 300], 2: [100, 200, 300]})
+    reactive_profiles = pd.DataFrame({1: [50, 100, 150], 2: [50, 100, 150]})
     try:
         _validate_profiles_match(active_profiles, reactive_profiles)
     except ValidationException:
         raise AssertionError("ValidationException was raised for matching profiles.") from None
 
     # Test with non-matching profiles
-    reactive_profiles_non_matching = pd.DataFrame({"node": [1, 2], "reactive_load": [50, 100]})
+    reactive_profiles_non_matching = pd.DataFrame({1: [50, 100, 150], 3: [50, 100, 150]})
     try:
         _validate_profiles_match(active_profiles, reactive_profiles_non_matching)
         raise AssertionError("ValidationException was not raised for non-matching profiles.")
@@ -214,8 +214,8 @@ def  test_full_system_accuracy_againts_expected_results():
 
     calculated_timestamp_table, calculated_line_table = model.AggregateResults()
 
-    expected_timestamp_table = pd.read_parquet(FILE_PATH_VALID_INPUT + "/output_table_row_per_timestamp.parquet")
-    expected_line_table = pd.read_parquet(FILE_PATH_VALID_INPUT + "/output_table_row_per_line.parquet")
+    expected_timestamp_table = pd.read_parquet(FILE_PATH_EXPECTED_OUTPUT + "/output_table_row_per_timestamp.parquet")
+    expected_line_table = pd.read_parquet(FILE_PATH_EXPECTED_OUTPUT + "/output_table_row_per_line.parquet")
 
     try:
         assert_frame_equal(calculated_timestamp_table, expected_timestamp_table, check_exact=False, rtol=1e-5)

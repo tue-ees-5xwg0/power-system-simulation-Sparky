@@ -24,3 +24,8 @@ active_profiles = pd.DataFrame(
 )
 
 print(active_profiles.head())
+
+
+active_profiles = pd.DataFrame({"node": [1, 2, 3], "active_load": [100, 200, 300]})
+
+print(active_profiles.head())
