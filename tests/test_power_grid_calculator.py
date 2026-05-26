@@ -345,3 +345,18 @@ def test_output_line_table():
     result = model._output_table_row_per_line(mock_nan_line_data)
     assert result["Max_Loading"].isna().all(), "Expected all Max_Loading values to be NaN"
     assert result["Min_Loading"].isna().all(), "Expected all Min_Loading values to be NaN"
+
+    #Test line table with single timestamp total loss zero
+    model._active_load_profiles = model._active_load_profiles.iloc[:1]
+    timestamps_len = 1
+    num_lines = 5
+    mock_nan_line_array = np.zeros((timestamps_len, num_lines),
+                                   dtype=[('id', 'i4'), ('p_from', 'f8'), ('p_to', 'f8'), ('loading', 'f8')])
+    mock_nan_line_array['id'] = np.arange(num_lines)
+    mock_nan_line_array['p_from'] = np.random.rand(num_lines)
+    mock_nan_line_array['p_to'] = np.random.rand(num_lines)
+    mock_nan_line_array['loading'] = np.random.rand(num_lines)
+    mock_single_timestamp_line_data = {"line": mock_nan_line_array}
+
+    result = model._output_table_row_per_line(mock_single_timestamp_line_data)
+    assert (result["Total_Loss"] == 0).all(), "Expected all Total_Loss values to be 0 for single timestamp line data"
