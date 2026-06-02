@@ -247,7 +247,7 @@ def test_output_node_table():
         reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
     )
 
-    #Test empty node table
+    # Test empty node table
     try:
         model._output_table_row_per_timestamp({})
         raise AssertionError(
@@ -256,7 +256,7 @@ def test_output_node_table():
     except ValueError:
         pass
 
-    #Test node table with invalid node data
+    # Test node table with invalid node data
     bad_node_data = {"node": np.zeros(99)}
 
     try:
@@ -267,7 +267,7 @@ def test_output_node_table():
     except ValueError:
         pass
 
-    #Test node table with wrong shape
+    # Test node table with wrong shape
     mock_bad_shape_data = {"node": np.zeros((99, 1))}
 
     try:
@@ -278,19 +278,17 @@ def test_output_node_table():
     except ValueError:
         pass
 
-    #Test node table with NaN values
+    # Test node table with NaN values
     timestamps_len = len(model._active_load_profiles.index)
     num_nodes = 5
-    mock_nan_node_array = np.zeros((timestamps_len, num_nodes), dtype=[('id', 'i4'), ('u_pu', 'f8')])
-    mock_nan_node_array['id'] = np.arange(num_nodes)
-    mock_nan_node_array['u_pu'] = np.nan
+    mock_nan_node_array = np.zeros((timestamps_len, num_nodes), dtype=[("id", "i4"), ("u_pu", "f8")])
+    mock_nan_node_array["id"] = np.arange(num_nodes)
+    mock_nan_node_array["u_pu"] = np.nan
     mock_nan_data = {"node": mock_nan_node_array}
 
     result = model._output_table_row_per_timestamp(mock_nan_data)
     assert result["Max_Voltage"].isna().all(), "Expected all Max_Voltage values to be NaN"
     assert result["Min_Voltage"].isna().all(), "Expected all Min_Voltage values to be NaN"
-
-
 
 
 def test_output_line_table():
@@ -300,7 +298,7 @@ def test_output_line_table():
         reactive_load_profiles_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
     )
 
-    #Test empty line table
+    # Test empty line table
     try:
         model._output_table_row_per_line({})
         raise AssertionError(
@@ -311,7 +309,7 @@ def test_output_line_table():
 
     bad_line_data = {"line": np.zeros(99)}
 
-    #Test line table with invalid line data
+    # Test line table with invalid line data
     try:
         model._output_table_row_per_line(bad_line_data)
         raise AssertionError(
@@ -320,7 +318,7 @@ def test_output_line_table():
     except ValueError:
         pass
 
-    #Test line table with wrong shape
+    # Test line table with wrong shape
     mock_bad_shape_data = {"line": np.zeros((99, 1))}
 
     try:
@@ -331,31 +329,33 @@ def test_output_line_table():
     except ValueError:
         pass
 
-    #Test line table with NaN values
+    # Test line table with NaN values
     timestamps_len = len(model._active_load_profiles.index)
     num_lines = 5
-    mock_nan_line_array = np.zeros((timestamps_len, num_lines),
-                                   dtype=[('id', 'i4'), ('p_from', 'f8'), ('p_to', 'f8'), ('loading', 'f8')])
-    mock_nan_line_array['id'] = np.arange(num_lines)
-    mock_nan_line_array['p_from'] = np.nan
-    mock_nan_line_array['p_to'] = np.nan
-    mock_nan_line_array['loading'] = np.nan
+    mock_nan_line_array = np.zeros(
+        (timestamps_len, num_lines), dtype=[("id", "i4"), ("p_from", "f8"), ("p_to", "f8"), ("loading", "f8")]
+    )
+    mock_nan_line_array["id"] = np.arange(num_lines)
+    mock_nan_line_array["p_from"] = np.nan
+    mock_nan_line_array["p_to"] = np.nan
+    mock_nan_line_array["loading"] = np.nan
     mock_nan_line_data = {"line": mock_nan_line_array}
 
     result = model._output_table_row_per_line(mock_nan_line_data)
     assert result["Max_Loading"].isna().all(), "Expected all Max_Loading values to be NaN"
     assert result["Min_Loading"].isna().all(), "Expected all Min_Loading values to be NaN"
 
-    #Test line table with single timestamp total loss zero
+    # Test line table with single timestamp total loss zero
     model._active_load_profiles = model._active_load_profiles.iloc[:1]
     timestamps_len = 1
     num_lines = 5
-    mock_nan_line_array = np.zeros((timestamps_len, num_lines),
-                                   dtype=[('id', 'i4'), ('p_from', 'f8'), ('p_to', 'f8'), ('loading', 'f8')])
-    mock_nan_line_array['id'] = np.arange(num_lines)
-    mock_nan_line_array['p_from'] = np.random.rand(num_lines)
-    mock_nan_line_array['p_to'] = np.random.rand(num_lines)
-    mock_nan_line_array['loading'] = np.random.rand(num_lines)
+    mock_nan_line_array = np.zeros(
+        (timestamps_len, num_lines), dtype=[("id", "i4"), ("p_from", "f8"), ("p_to", "f8"), ("loading", "f8")]
+    )
+    mock_nan_line_array["id"] = np.arange(num_lines)
+    mock_nan_line_array["p_from"] = np.random.rand(num_lines)
+    mock_nan_line_array["p_to"] = np.random.rand(num_lines)
+    mock_nan_line_array["loading"] = np.random.rand(num_lines)
     mock_single_timestamp_line_data = {"line": mock_nan_line_array}
 
     result = model._output_table_row_per_line(mock_single_timestamp_line_data)
