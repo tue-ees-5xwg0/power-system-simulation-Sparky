@@ -221,3 +221,11 @@ def _validate_load_profile(Type: str, load_profiles_path: str) -> DataFrame:
 def _validate_profiles_match(active_load_profiles: DataFrame, reactive_load_profiles: DataFrame) -> None:
     if active_load_profiles.shape != reactive_load_profiles.shape:
         raise ProfilesNotMatchingError("Active and reactive load profiles do not match.")
+
+    # Check if ID's match
+    if not active_load_profiles.columns.equals(reactive_load_profiles.columns):
+        raise ProfilesNotMatchingError("Active and reactive load profiles have mismatched Load IDs.")
+
+    # Check if timestamps match
+    if not active_load_profiles.index.equals(reactive_load_profiles.index):
+        raise ProfilesNotMatchingError("Active and reactive load profiles have mismatched timestamps.")
