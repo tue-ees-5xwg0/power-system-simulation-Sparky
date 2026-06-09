@@ -38,12 +38,12 @@ class TapOptimizationError(Assignment3ValidationError):
 
 class LVGridAnalytics:
     def __init__(
-            self,
-            grid_path: str,
-            feeder_line_ids: list[int],
-            active_load_profile_path: str,
-            reactive_load_profile_path: str,
-            ev_profile_path: str,
+        self,
+        grid_path: str,
+        feeder_line_ids: list[int],
+        active_load_profile_path: str,
+        reactive_load_profile_path: str,
+        ev_profile_path: str,
     ) -> None:
         """
         Initialize the LVGridAnalytics object with the given parameters.
@@ -55,7 +55,7 @@ class LVGridAnalytics:
         try:
             self._dataset = validate_power_grid_model(grid_path)
             self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
-            active_load_profile_path, reactive_load_profile_path
+                active_load_profile_path, reactive_load_profile_path
             )
             self._ev_pool = validate_load_profile("EV pool", ev_profile_path)
         except ValidationException as e:
@@ -64,23 +64,22 @@ class LVGridAnalytics:
             raise ProfileMismatchError(str(e)) from e
 
     def validate_inputs(self) -> None:
-        """Runs all the validation checks for Assignemnt 3 """
+        """Runs all the validation checks for Assignemnt 3"""
 
-        #Checks Time indences and column IDs match between active load profile, reactive load profile, and ev profile
+        # Checks Time indences and column IDs match between active load profile, reactive load profile, and ev profile
         self._validate_ev_profile()
-        #Check if profile IDs match the sym_load IDs in the grid
+        # Check if profile IDs match the sym_load IDs in the grid
         self._validate_profile_sym_loads()
-        #Checks the amount of transformers in the systems
+        # Checks the amount of transformers in the systems
         self._validate_transformer()
-        #Check the amount of sources in the system
+        # Check the amount of sources in the system
         self._validate_source()
-        #Check the feeder line ids are valid
+        # Check the feeder line ids are valid
         self._validate_feeder_line_ids()
-        #Checks if the feeder line ids are connected to the transformer
+        # Checks if the feeder line ids are connected to the transformer
         self._validate_feeder_connections()
-        #Check if grid is conneted and acyclic
+        # Check if grid is conneted and acyclic
         self._validate_topology()
-
 
     def _validate_topology(self) -> None:
         """Extracts grid data and uses GraphProcessor to validate topology."""
@@ -96,9 +95,7 @@ class LVGridAnalytics:
         # 3. Create the (from, to) pairs
         edge_vertex_id_pairs = [
             (int(f), int(t)) for f, t in zip(line_data["from_node"], line_data["to_node"], strict=True)
-        ] + [
-            (int(f), int(t)) for f, t in zip(transformer_data["from_node"], transformer_data["to_node"], strict=True)
-        ]
+        ] + [(int(f), int(t)) for f, t in zip(transformer_data["from_node"], transformer_data["to_node"], strict=True)]
 
         # 4. Determine if edges are enabled
         # A line is only active if BOTH switches (from_status and to_status) are closed (1)
@@ -118,7 +115,7 @@ class LVGridAnalytics:
                 edge_ids=edge_ids,
                 edge_vertex_id_pairs=edge_vertex_id_pairs,
                 edge_enabled=edge_enabled,
-                source_vertex_id=source_vertex_id
+                source_vertex_id=source_vertex_id,
             )
         except GraphNotFullyConnectedError as e:
             raise Assignment3ValidationError("Validation failed: The base grid is not fully connected.") from e
@@ -155,11 +152,11 @@ class LVGridAnalytics:
             raise ProfileMismatchError(error_msg)
 
     def _validate_ev_profile(self) -> None:
-        #Check if the ev profile match the loads
+        # Check if the ev profile match the loads
         if not self._active_load_profiles.index.equals(self._ev_pool.index):
             raise ProfilesNotMatchingError("Active load profile and EV profile have different time indices.")
 
-        #Check if there are enough columns in the ev profile
+        # Check if there are enough columns in the ev profile
         if len(self._ev_pool.columns) < len(self._active_load_profiles.columns):
             raise ProfilesNotMatchingError("EV profile has fewer columns than the active load profile.")
 
@@ -167,7 +164,8 @@ class LVGridAnalytics:
         # check if there is only 1 transformer in the system
         if len(self._dataset["transformer"]) != 1:
             raise ValidationException(
-                "There should only be one transformer in the system. Please specify the transformer ID.")
+                "There should only be one transformer in the system. Please specify the transformer ID."
+            )
 
     # There should be exactly one source in the system
     def _validate_source(self) -> None:

@@ -14,6 +14,7 @@ class ValidationException(Exception):
 class ProfilesNotMatchingError(Exception):
     pass
 
+
 def validate_power_grid_model(power_grid_model_path: str) -> Dataset:
     # check string is not empty
     if not power_grid_model_path:
