@@ -6,15 +6,15 @@ from power_grid_model.errors import PowerGridError
 
 from power_system_simulation.validate import (
     ValidationException,
-    _validate_active_reactive_profiles,
-    _validate_power_grid_model,
+    validate_active_reactive_profiles,
+    validate_power_grid_model,
 )
 
 
 class GridModel:
     def __init__(self, power_grid_model_path: str, active_load_profiles_path: str, reactive_load_profiles_path: str):
-        self._power_grid_model_dataset = _validate_power_grid_model(power_grid_model_path)
-        self._active_load_profiles, self._reactive_load_profiles = _validate_active_reactive_profiles(
+        self._power_grid_model_dataset = validate_power_grid_model(power_grid_model_path)
+        self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
             active_load_profiles_path, reactive_load_profiles_path
         )
         self._model = self._initialize_model()
