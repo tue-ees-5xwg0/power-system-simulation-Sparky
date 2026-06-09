@@ -62,19 +62,35 @@ class LVGridAnalytics:
 ### Tap optimization types
 
 ```python
+from collections.abc import Callable
 from dataclasses import dataclass
-from enum import StrEnum
 
 
-class TapOptimizationCriterion(StrEnum):
-    MIN_LOSS = "min_loss"
-    MIN_VOLTAGE_DEVIATION = "min_voltage_deviation"
+TapOptimizationCriterion = Callable[[pd.DataFrame, pd.DataFrame], float]
+
+
+def minimize_total_loss(
+    timestamp_table: pd.DataFrame,
+    line_table: pd.DataFrame,
+) -> float:
+    return line_table["Total_Loss"].sum()
+
+
+def minimize_average_voltage_deviation(
+    timestamp_table: pd.DataFrame,
+    line_table: pd.DataFrame,
+) -> float:
+    return (
+        (timestamp_table["Max_Voltage"] - 1.0).abs()
+        + (timestamp_table["Min_Voltage"] - 1.0).abs()
+    ).mean() / 2
 
 
 @dataclass(frozen=True)
 class TapOptimizationResult:
     tap_position: int
     criterion: TapOptimizationCriterion
+    criterion_value: float
     total_loss_kwh: float
     average_voltage_deviation_pu: float
     all_tap_results: pd.DataFrame
@@ -84,9 +100,22 @@ class TapOptimizationResult:
 
 ```text
 tap_position
+criterion_value
 total_loss_kwh
 average_voltage_deviation_pu
 ```
+
+`TapOptimizationCriterion` is a scoring function. It receives the aggregated
+simulation results for one candidate tap position:
+
+```python
+timestamp_table, line_table
+```
+
+and returns a numeric criterion value. The tap optimizer should select the tap
+position with the lowest returned value. This lets callers pass built-in
+criteria such as `minimize_total_loss` or custom project-specific scoring
+functions without changing the optimizer API.
 
 ### Exceptions
 
@@ -330,7 +359,8 @@ Behavior:
    - aggregate results
    - compute `total_loss_kwh`
    - compute `average_voltage_deviation_pu`
-7. Select the best tap position according to `criterion`.
+   - compute `criterion_value = criterion(timestamp_table, line_table)`
+7. Select the best tap position by the lowest `criterion_value`.
 8. Return `TapOptimizationResult`.
 
 Loss metric:
@@ -339,7 +369,7 @@ Loss metric:
 total_loss_kwh = line_table["Total_Loss"].sum()
 ```
 
-Voltage deviation metric:
+Built-in voltage deviation criterion:
 
 ```python
 average_voltage_deviation_pu = (
@@ -419,10 +449,11 @@ timestamp_table, line_table = analytics.run_ev_penetration(
 
 ```python
 result = analytics.optimize_tap_position(
-    criterion=TapOptimizationCriterion.MIN_LOSS,
+    criterion=minimize_total_loss,
 )
 
 result.tap_position
+result.criterion_value
 result.total_loss_kwh
 result.average_voltage_deviation_pu
 result.all_tap_results
@@ -476,8 +507,9 @@ Test that:
 
 Test that:
 
-- `TapOptimizationCriterion.MIN_LOSS` returns a valid `TapOptimizationResult`
-- `TapOptimizationCriterion.MIN_VOLTAGE_DEVIATION` returns a valid `TapOptimizationResult`
+- `minimize_total_loss` returns a valid `TapOptimizationResult`
+- `minimize_average_voltage_deviation` returns a valid `TapOptimizationResult`
+- a custom callable criterion receives `timestamp_table` and `line_table` and its lowest score is selected
 - `all_tap_results` contains one row per tested tap position
 - EV profiles are not included in tap optimization
 - missing or invalid tap-position data raises `TapOptimizationError`
