@@ -84,7 +84,7 @@ def _validate_ev_profile(active_load_profiles: DataFrame, ev_pool: DataFrame) ->
     if len(ev_pool.columns) < len(active_load_profiles.columns):
         raise ProfilesNotMatchingError("EV profile has fewer columns than the active load profile.")
 
-def validate_transformer(dataset: Dataset, transformer_id: int) -> None:
+def _validate_transformer(dataset: Dataset, transformer_id: int) -> None:
     # Check if the transformer id is valid
     if transformer_id not in dataset["transformer"]["id"]:
         raise ValidationException(f"Transformer ID {transformer_id} is not valid.")
@@ -94,18 +94,18 @@ def validate_transformer(dataset: Dataset, transformer_id: int) -> None:
             "There should only be one transformer in the system. Please specify the transformer ID.")
 
 # There should be exactly one source in the system
-def validate_source(dataset: Dataset) -> None:
+def _validate_source(dataset: Dataset) -> None:
     if len(dataset["source"]) != 1:
         raise ValidationException("There should be exactly one source in the system.")
 
 # check if Every LV feeder ID is a valid line ID.
-def validate_feeder_line_ids(dataset: Dataset, feeder_line_ids: list[int]) -> None:
+def _validate_feeder_line_ids(dataset: Dataset, feeder_line_ids: list[int]) -> None:
     for line_id in feeder_line_ids:
         if line_id not in dataset["line"]["id"]:
             raise ValidationException(f"Feeder line ID {line_id} is not valid.")
 
 # check if Every feeder line has from_node == transformer.to_node
-def validate_feeder_connections(dataset: Dataset, feeder_line_ids: list[int]) -> None:
+def _validate_feeder_connections(dataset: Dataset, feeder_line_ids: list[int]) -> None:
     transformer_to_node = dataset["transformer"]["to_node"][0]
     line_from_node_dict = dict(zip(dataset["line"]["id"], dataset["line"]["from_node"], strict=True))
     for line_id in feeder_line_ids:

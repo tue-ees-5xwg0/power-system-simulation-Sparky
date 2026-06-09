@@ -3,8 +3,12 @@ from power_system_simulation.validate import (
     ValidationException,
     _validate_active_reactive_profiles,
     _validate_ev_profile,
+    _validate_feeder_connections,
+    _validate_feeder_line_ids,
     _validate_load_profile,
     _validate_power_grid_model,
+    _validate_source,
+    _validate_transformer,
 )
 
 
@@ -60,4 +64,8 @@ class LVGridAnalytics:
         """Runs all the validation checks for Assignemnt 3 """
 
         _validate_ev_profile(self._active_load_profiles, self._ev_pool)
+        _validate_transformer(self._dataset, transformer_id=0)
+        _validate_source(self._dataset)
+        _validate_feeder_line_ids(self._dataset, self._feeder_line_ids)
+        _validate_feeder_connections(self._dataset, self._feeder_line_ids)
         #TODO Add more validation checks
