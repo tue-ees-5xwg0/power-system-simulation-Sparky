@@ -63,9 +63,14 @@ class LVGridAnalytics:
     def validate_inputs(self) -> None:
         """Runs all the validation checks for Assignemnt 3 """
 
+        #Checks Time indences and column IDs match between active load profile, reactive load profile, and ev profile
         _validate_ev_profile(self._active_load_profiles, self._ev_pool)
-        _validate_transformer(self._dataset, transformer_id=0)
+        #Checks the amount of transformers in the systems
+        _validate_transformer(self._dataset)
+        #Check the amount of sources in the system
         _validate_source(self._dataset)
+        #Check the feeder line ids are valid
         _validate_feeder_line_ids(self._dataset, self._feeder_line_ids)
+        #Checks if the feeder line ids are connected to the transformer
         _validate_feeder_connections(self._dataset, self._feeder_line_ids)
         #TODO Add more validation checks
