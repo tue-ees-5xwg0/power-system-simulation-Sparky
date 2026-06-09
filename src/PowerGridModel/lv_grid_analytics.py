@@ -13,6 +13,16 @@ from power_system_simulation.validate import (
     validate_load_profile,
     validate_power_grid_model,
 )
+from PowerGridModel.tap_position_optimization import TapOptimizationError, TapPositionOptimization
+
+__all__ = [
+    "Assignment3ValidationError",
+    "InvalidFeederError",
+    "InvalidLineOutageError",
+    "LVGridAnalytics",
+    "ProfileMismatchError",
+    "TapOptimizationError",
+]
 
 
 # Define custom exceptions for validation errors in Assignment 3
@@ -32,11 +42,7 @@ class ProfileMismatchError(Assignment3ValidationError):
     pass
 
 
-class TapOptimizationError(Assignment3ValidationError):
-    pass
-
-
-class LVGridAnalytics:
+class LVGridAnalytics(TapPositionOptimization):
     def __init__(
         self,
         grid_path: str,
