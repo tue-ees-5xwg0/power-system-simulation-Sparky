@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from PowerGridModel.power_grid_calculator import (
-    GridModel,
+from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
     _validate_active_reactive_profiles,
@@ -11,6 +10,7 @@ from PowerGridModel.power_grid_calculator import (
     _validate_power_grid_model,
     _validate_profiles_match,
 )
+from PowerGridModel.power_grid_calculator import GridModel
 
 FILE_PATH_VALID_INPUT = "tests/PGM_TestData/input"
 FILE_PATH_FALSE_INPUT = "tests/PGM_TestData/false_input"

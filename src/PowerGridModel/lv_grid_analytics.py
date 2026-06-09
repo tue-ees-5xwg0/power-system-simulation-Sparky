@@ -1,7 +1,8 @@
-from PowerGridModel.power_grid_calculator import (
+from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
     _validate_active_reactive_profiles,
+    _validate_ev_profile,
     _validate_load_profile,
     _validate_power_grid_model,
 )
@@ -55,17 +56,8 @@ class LVGridAnalytics:
         except ProfilesNotMatchingError as e:
             raise ProfileMismatchError(str(e)) from e
 
-        def validate_inputs(self) -> None:
-            """Runs all the validation checks for Assignemnt 3 """
+    def validate_inputs(self) -> None:
+        """Runs all the validation checks for Assignemnt 3 """
 
-            self._validate_ev_profile()
-            #TODO Add more validation checks
-
-        def _validate_ev_profile(self) -> None:
-            #Check if the ev profile match the loads
-            if not self._active_profiles.index.equals(self._ev_pool.index):
-                raise ProfilesNotMatchingError("Active load profile and EV profile have different time indices.")
-
-            #Check if there are enough columns in the ev profile
-            if len(self._ev_pool.columns) < len(self._active_profiles.columns):
-                raise ProfilesNotMatchingError("EV profile has fewer columns than the active load profile.")
+        _validate_ev_profile(self._active_load_profiles, self._ev_pool)
+        #TODO Add more validation checks
