@@ -10,13 +10,8 @@ from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
     _validate_active_reactive_profiles,
-    _validate_ev_profile,
-    _validate_feeder_connections,
-    _validate_feeder_line_ids,
     _validate_load_profile,
     _validate_power_grid_model,
-    _validate_source,
-    _validate_transformer,
 )
 
 
@@ -72,17 +67,17 @@ class LVGridAnalytics:
         """Runs all the validation checks for Assignemnt 3 """
 
         #Checks Time indences and column IDs match between active load profile, reactive load profile, and ev profile
-        _validate_ev_profile(self._active_load_profiles, self._ev_pool)
+        self._validate_ev_profile()
         #Check if profile IDs match the sym_load IDs in the grid
         self._validate_profile_sym_loads()
         #Checks the amount of transformers in the systems
-        _validate_transformer(self._dataset)
+        self._validate_transformer()
         #Check the amount of sources in the system
-        _validate_source(self._dataset)
+        self._validate_source()
         #Check the feeder line ids are valid
-        _validate_feeder_line_ids(self._dataset, self._feeder_line_ids)
+        self._validate_feeder_line_ids()
         #Checks if the feeder line ids are connected to the transformer
-        _validate_feeder_connections(self._dataset, self._feeder_line_ids)
+        self._validate_feeder_connections()
         #Check if grid is conneted and acyclic
         self._validate_topology()
 
@@ -153,3 +148,37 @@ class LVGridAnalytics:
                 error_msg += f" IDs in grid but not in profile: {missing_in_profile}."
 
             raise ProfileMismatchError(error_msg)
+
+    def _validate_ev_profile(self) -> None:
+        #Check if the ev profile match the loads
+        if not self._active_load_profiles.index.equals(self._ev_pool.index):
+            raise ProfilesNotMatchingError("Active load profile and EV profile have different time indices.")
+
+        #Check if there are enough columns in the ev profile
+        if len(self._ev_pool.columns) < len(self._active_load_profiles.columns):
+            raise ProfilesNotMatchingError("EV profile has fewer columns than the active load profile.")
+
+    def _validate_transformer(self) -> None:
+        # check if there is only 1 transformer in the system
+        if len(self._dataset["transformer"]) != 1:
+            raise ValidationException(
+                "There should only be one transformer in the system. Please specify the transformer ID.")
+
+    # There should be exactly one source in the system
+    def _validate_source(self) -> None:
+        if len(self._dataset["source"]) != 1:
+            raise ValidationException("There should be exactly one source in the system.")
+
+    # check if Every LV feeder ID is a valid line ID.
+    def _validate_feeder_line_ids(self) -> None:
+        for line_id in self._feeder_line_ids:
+            if line_id not in self._dataset["line"]["id"]:
+                raise ValidationException(f"Feeder line ID {line_id} is not valid.")
+
+    # check if Every feeder line has from_node == transformer.to_node
+    def _validate_feeder_connections(self) -> None:
+        transformer_to_node = self._dataset["transformer"]["to_node"][0]
+        line_from_node_dict = dict(zip(self._dataset["line"]["id"], self._dataset["line"]["from_node"], strict=True))
+        for line_id in self._feeder_line_ids:
+            if line_from_node_dict.get(line_id) != transformer_to_node:
+                raise ValidationException(f"Feeder line ID {line_id} is not connected to the transformer.")
