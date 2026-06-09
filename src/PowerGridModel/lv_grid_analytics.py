@@ -9,9 +9,9 @@ from GraphTools.graph_processing import (
 from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
-    _validate_active_reactive_profiles,
-    _validate_load_profile,
-    _validate_power_grid_model,
+    validate_active_reactive_profiles,
+    validate_load_profile,
+    validate_power_grid_model,
 )
 
 
@@ -53,11 +53,11 @@ class LVGridAnalytics:
         self._feeder_line_ids = feeder_line_ids
 
         try:
-            self._dataset = _validate_power_grid_model(grid_path)
-            self._active_load_profiles, self._reactive_load_profiles = _validate_active_reactive_profiles(
+            self._dataset = validate_power_grid_model(grid_path)
+            self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
             active_load_profile_path, reactive_load_profile_path
             )
-            self._ev_pool = _validate_load_profile("EV pool", ev_profile_path)
+            self._ev_pool = validate_load_profile("EV pool", ev_profile_path)
         except ValidationException as e:
             raise Assignment3ValidationError(str(e)) from e
         except ProfilesNotMatchingError as e:
@@ -86,25 +86,30 @@ class LVGridAnalytics:
         """Extracts grid data and uses GraphProcessor to validate topology."""
 
         # 1. Extract vertices (nodes)
-        vertex_ids = self._dataset["node"]["id"].tolist()
+        vertex_ids = [int(v) for v in self._dataset["node"]["id"]]
 
-        # 2. Extract edges (lines)
+        # 2. Extract edges (lines and transformers)
         line_data = self._dataset["line"]
-        edge_ids = line_data["id"].tolist()
+        transformer_data = self._dataset["transformer"]
+        edge_ids = [int(e) for e in line_data["id"]] + [int(e) for e in transformer_data["id"]]
 
         # 3. Create the (from, to) pairs
-        edge_vertex_id_pairs = list(zip(line_data["from_node"], line_data["to_node"], strict=True))
+        edge_vertex_id_pairs = [
+            (int(f), int(t)) for f, t in zip(line_data["from_node"], line_data["to_node"], strict=True)
+        ] + [
+            (int(f), int(t)) for f, t in zip(transformer_data["from_node"], transformer_data["to_node"], strict=True)
+        ]
 
         # 4. Determine if edges are enabled
         # A line is only active if BOTH switches (from_status and to_status) are closed (1)
         edge_enabled = [
             bool(f_stat == 1 and t_stat == 1)
             for f_stat, t_stat in zip(line_data["from_status"], line_data["to_status"], strict=True)
-        ]
+        ] + [True] * len(transformer_data)  # Transformers are always enabled
 
         # 5. Extract the source vertex ID
         # (Assuming _validate_source already proved there is exactly 1 source)
-        source_vertex_id = self._dataset["source"]["node"][0]
+        source_vertex_id = int(self._dataset["source"]["node"][0])
 
         # 6. Initialize GraphProcessor to trigger the automatic validation checks
         try:
