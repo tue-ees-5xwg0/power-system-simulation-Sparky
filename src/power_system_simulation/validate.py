@@ -84,10 +84,7 @@ def _validate_ev_profile(active_load_profiles: DataFrame, ev_pool: DataFrame) ->
     if len(ev_pool.columns) < len(active_load_profiles.columns):
         raise ProfilesNotMatchingError("EV profile has fewer columns than the active load profile.")
 
-def _validate_transformer(dataset: Dataset, transformer_id: int) -> None:
-    # Check if the transformer id is valid
-    if transformer_id not in dataset["transformer"]["id"]:
-        raise ValidationException(f"Transformer ID {transformer_id} is not valid.")
+def _validate_transformer(dataset: Dataset) -> None:
     # check if there is only 1 transformer in the system
     if len(dataset["transformer"]) != 1:
         raise ValidationException(
