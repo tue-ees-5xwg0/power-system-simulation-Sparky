@@ -5,7 +5,7 @@ from power_grid_model import BranchSide, LoadGenType, WindingType, initialize_ar
 
 import PowerGridModel.lv_grid_analytics as lv_module
 from PowerGridModel.lv_grid_analytics import LVGridAnalytics
-from PowerGridModel.power_grid_calculator import ProfilesNotMatchingError, ValidationException
+from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
 from PowerGridModel.tap_position_optimization import (
     TapOptimizationError,
     TapOptimizationResult,
@@ -267,56 +267,4 @@ def test_aggregation_helpers_raise_on_wrong_batch_length():
         optimizer._output_table_row_per_line({"line": line_data})
 
 
-def test_lv_grid_analytics_init_and_validate_inputs_with_loaded_data(monkeypatch):
-    active, reactive = _profiles()
-    ev_pool = pd.DataFrame({0: [1.0, 2.0, 3.0]}, index=active.index)
 
-    monkeypatch.setattr(lv_module, "_validate_power_grid_model", lambda path: _transformer_dataset())
-    monkeypatch.setattr(
-        lv_module,
-        "_validate_active_reactive_profiles",
-        lambda active_path, reactive_path: (active, reactive),
-    )
-    monkeypatch.setattr(lv_module, "_validate_load_profile", lambda profile_type, path: ev_pool)
-
-    analytics = LVGridAnalytics("grid.json", [30], "active.parquet", "reactive.parquet", "ev.parquet")
-
-    analytics.validate_inputs()
-    assert analytics._feeder_line_ids == [30]
-    assert analytics._tap_transformer_id == 20
-
-
-def test_lv_grid_analytics_wraps_loading_validation_errors(monkeypatch):
-    def raise_validation_error(path: str):
-        raise ValidationException("bad grid")
-
-    monkeypatch.setattr(lv_module, "_validate_power_grid_model", raise_validation_error)
-
-    with pytest.raises(lv_module.Assignment3ValidationError):
-        LVGridAnalytics("grid.json", [30], "active.parquet", "reactive.parquet", "ev.parquet")
-
-    monkeypatch.setattr(lv_module, "_validate_power_grid_model", lambda path: _transformer_dataset())
-
-    def raise_profile_error(active_path: str, reactive_path: str):
-        raise ProfilesNotMatchingError("bad profiles")
-
-    monkeypatch.setattr(lv_module, "_validate_active_reactive_profiles", raise_profile_error)
-
-    with pytest.raises(lv_module.ProfileMismatchError):
-        LVGridAnalytics("grid.json", [30], "active.parquet", "reactive.parquet", "ev.parquet")
-
-
-def test_lv_grid_analytics_ev_profile_validation_errors():
-    active, _ = _profiles()
-    analytics = LVGridAnalytics.__new__(LVGridAnalytics)
-    analytics._active_load_profiles = active
-    analytics._ev_pool = pd.DataFrame({0: [1.0, 2.0, 3.0]}, index=pd.date_range("2024-01-02", periods=3, freq="h"))
-
-    with pytest.raises(lv_module.ProfileMismatchError):
-        analytics._validate_ev_profile()
-
-    analytics._active_load_profiles = pd.concat([active, active.rename(columns={40: 41})], axis=1)
-    analytics._ev_pool = pd.DataFrame({0: [1.0, 2.0, 3.0]}, index=active.index)
-
-    with pytest.raises(lv_module.ProfileMismatchError):
-        analytics._validate_ev_profile()

@@ -47,9 +47,9 @@ class TapPositionOptimization:
         reactive_load_profiles: pd.DataFrame,
         transformer_id: int | None = None,
     ) -> None:
-        self._tap_dataset = dataset
-        self._tap_active_load_profiles = active_load_profiles
-        self._tap_reactive_load_profiles = reactive_load_profiles
+        self._dataset = dataset
+        self._active_load_profiles = active_load_profiles
+        self._reactive_load_profiles = reactive_load_profiles
         self._tap_transformer_id = transformer_id
 
         self._validate_tap_inputs()
@@ -106,13 +106,13 @@ class TapPositionOptimization:
         self._get_component("transformer")
         sym_load = self._get_component("sym_load")
 
-        if not self._tap_active_load_profiles.index.equals(self._tap_reactive_load_profiles.index):
+        if not self._active_load_profiles.index.equals(self._reactive_load_profiles.index):
             raise TapOptimizationError("Active and reactive load profiles have mismatched timestamps.")
-        if not self._tap_active_load_profiles.columns.equals(self._tap_reactive_load_profiles.columns):
+        if not self._active_load_profiles.columns.equals(self._reactive_load_profiles.columns):
             raise TapOptimizationError("Active and reactive load profiles have mismatched Load IDs.")
 
         load_ids = {int(load_id) for load_id in sym_load["id"]}
-        profile_ids = {int(load_id) for load_id in self._tap_active_load_profiles.columns}
+        profile_ids = {int(load_id) for load_id in self._active_load_profiles.columns}
         missing_ids = sorted(profile_ids - load_ids)
         if missing_ids:
             raise TapOptimizationError(f"Load profile contains IDs that are not sym_load IDs: {missing_ids}.")
@@ -156,7 +156,7 @@ class TapPositionOptimization:
     def _copy_dataset_with_tap_position(self, tap_position: int) -> Dataset:
         copied_dataset = {
             component_type: component.copy()
-            for component_type, component in self._tap_dataset.items()
+            for component_type, component in self._dataset.items()
         }
         transformer = self._get_component_from_dataset(copied_dataset, "transformer")
         matches = transformer["id"] == self._tap_transformer_id
@@ -174,8 +174,8 @@ class TapPositionOptimization:
             raise TapOptimizationError("Power flow failed during tap position optimization.") from error
 
     def _create_pgm_batch_dataset(self) -> dict:
-        timestamps = self._tap_active_load_profiles.index
-        load_ids = list(self._tap_active_load_profiles.columns)
+        timestamps = self._active_load_profiles.index
+        load_ids = list(self._active_load_profiles.columns)
 
         update_meta = power_grid_meta_data["update"]["sym_load"]
         sym_load_dtype = update_meta.dtype
@@ -189,8 +189,8 @@ class TapPositionOptimization:
                     (
                         int(load_id),
                         status_nan,
-                        float(self._tap_active_load_profiles.loc[timestamp, load_id]),
-                        float(self._tap_reactive_load_profiles.loc[timestamp, load_id]),
+                        float(self._active_load_profiles.loc[timestamp, load_id]),
+                        float(self._reactive_load_profiles.loc[timestamp, load_id]),
                     )
                 )
             sym_load_updates.append(np.array(timestamp_updates, dtype=sym_load_dtype))
@@ -202,7 +202,7 @@ class TapPositionOptimization:
         if node_data is None:
             raise TapOptimizationError("Node results not found in power flow output.")
 
-        timestamps = pd.Index(self._tap_active_load_profiles.index)
+        timestamps = pd.Index(self._active_load_profiles.index)
         if node_data.ndim == 1:
             node_data = node_data[np.newaxis, :]
         if node_data.shape[0] != len(timestamps):
@@ -242,7 +242,7 @@ class TapPositionOptimization:
         if line_data is None:
             raise TapOptimizationError("Line results not found in power flow output.")
 
-        timestamps = pd.Index(self._tap_active_load_profiles.index)
+        timestamps = pd.Index(self._active_load_profiles.index)
         if line_data.ndim == 1:
             line_data = line_data[np.newaxis, :]
         if line_data.shape[0] != len(timestamps):
@@ -286,7 +286,7 @@ class TapPositionOptimization:
         ).set_index("Line_ID")
 
     def _get_component(self, component_name: str) -> np.ndarray:
-        return self._get_component_from_dataset(self._tap_dataset, component_name)
+        return self._get_component_from_dataset(self._dataset, component_name)
 
     @staticmethod
     def _get_component_from_dataset(dataset: Dataset, component_name: str) -> np.ndarray:
