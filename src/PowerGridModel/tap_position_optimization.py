@@ -31,11 +31,7 @@ def minimize_total_loss(timestamp_table: pd.DataFrame, line_table: pd.DataFrame)
 
 def minimize_average_voltage_deviation(timestamp_table: pd.DataFrame, line_table: pd.DataFrame) -> float:
     return float(
-        (
-            (timestamp_table["Max_Voltage"] - 1.0).abs()
-            + (timestamp_table["Min_Voltage"] - 1.0).abs()
-        ).mean()
-        / 2
+        ((timestamp_table["Max_Voltage"] - 1.0).abs() + (timestamp_table["Min_Voltage"] - 1.0).abs()).mean() / 2
     )
 
 
@@ -154,10 +150,7 @@ class TapPositionOptimization:
         return transformer[matches][0]
 
     def _copy_dataset_with_tap_position(self, tap_position: int) -> Dataset:
-        copied_dataset = {
-            component_type: component.copy()
-            for component_type, component in self._dataset.items()
-        }
+        copied_dataset = {component_type: component.copy() for component_type, component in self._dataset.items()}
         transformer = self._get_component_from_dataset(copied_dataset, "transformer")
         matches = transformer["id"] == self._tap_transformer_id
         transformer["tap_pos"][matches] = tap_position

@@ -3,9 +3,7 @@ import pandas as pd
 import pytest
 from power_grid_model import BranchSide, LoadGenType, WindingType, initialize_array
 
-import PowerGridModel.lv_grid_analytics as lv_module
 from PowerGridModel.lv_grid_analytics import LVGridAnalytics
-from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
 from PowerGridModel.tap_position_optimization import (
     TapOptimizationError,
     TapOptimizationResult,
@@ -265,6 +263,3 @@ def test_aggregation_helpers_raise_on_wrong_batch_length():
         optimizer._output_table_row_per_timestamp({"node": node_data})
     with pytest.raises(TapOptimizationError):
         optimizer._output_table_row_per_line({"line": line_data})
-
-
-

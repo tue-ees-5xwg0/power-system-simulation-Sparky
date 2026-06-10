@@ -68,15 +68,12 @@ class LVGridAnalytics(TapPositionOptimization):
             raise Assignment3ValidationError(str(e)) from e
         except ProfilesNotMatchingError as e:
             raise ProfileMismatchError(str(e)) from e
-        
+
         try:
             self._validate_tap_inputs()
             self._tap_transformer_id = self._resolve_transformer_id(None)
         except TapOptimizationError as e:
             raise Assignment3ValidationError(f"Tap position optimization input validation failed: {e}") from e
-        
-
-        
 
     def validate_inputs(self) -> None:
         """Runs all the validation checks for Assignemnt 3"""
