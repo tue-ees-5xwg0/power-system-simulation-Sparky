@@ -13,7 +13,7 @@ from power_system_simulation.validate import (
     validate_load_profile,
     validate_power_grid_model,
 )
-from PowerGridModel.N_minus_1 import NMinusOne, InvalidLineOutageError
+from PowerGridModel.N_minus_1 import InvalidLineOutageError, NMinusOne
 
 
 # Define custom exceptions for validation errors in Assignment 3
@@ -22,10 +22,6 @@ class Assignment3ValidationError(Exception):
 
 
 class InvalidFeederError(Assignment3ValidationError):
-    pass
-
-
-class InvalidLineOutageError(Assignment3ValidationError):
     pass
 
 
@@ -211,7 +207,7 @@ class LVGridAnalytics:
         try:
             self.validate_inputs()
         except Exception as e:
-            raise InvalidLineOutageError(f"Input validation failed: {e}")
+            raise InvalidLineOutageError(f"Input validation failed: {e}")  # noqa: B904
 
         # Create N-1 analyzer instance
         try:
