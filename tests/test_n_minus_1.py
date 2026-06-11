@@ -7,11 +7,12 @@ These tests verify that the N-1 analysis correctly:
 3. Runs time-series power flow for each alternative
 4. Returns results in the expected format
 """
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from PowerGridModel.lv_grid_analytics import InvalidLineOutageError, LVGridAnalytics
+from PowerGridModel.lv_grid_analytics import LVGridAnalytics
 from PowerGridModel.N_minus_1 import InvalidLineOutageError as NMinusOneError, NMinusOne
 
 FILE_PATH_VALID_INPUT = "tests/small_network"
@@ -71,6 +72,7 @@ def test_n_minus_one_invalid_line_id(valid_analytics):
     """Test N-1 analysis with an invalid line ID."""
     # Line 999 doesn't exist
     from PowerGridModel.N_minus_1 import InvalidLineOutageError as NMinusOneError
+
     with pytest.raises(NMinusOneError, match="not found"):
         valid_analytics.n_minus_one(outage_line_id=999)
 
@@ -127,11 +129,7 @@ def test_n_minus_one_alternatives_are_disconnected_in_base(valid_analytics):
 
         # These should be from the disconnected lines in the base case
         line_data = valid_analytics._dataset["line"]
-        disconnected_line_ids = set(
-            line_data["id"][
-                (line_data["from_status"] == 0) | (line_data["to_status"] == 0)
-            ]
-        )
+        disconnected_line_ids = set(line_data["id"][(line_data["from_status"] == 0) | (line_data["to_status"] == 0)])
 
         # All alternatives should be in the disconnected lines
         for alt_id in alternative_ids:
@@ -177,13 +175,12 @@ def test_n_minus_one_direct_class_invalid_line():
 def test_n_minus_one_power_flow_exception(valid_analytics):
     """
     Test that power flow exceptions are properly handled.
-    
+
     This tests the exception handling branch: when calculate_power_flow fails,
     the alternative should be skipped (continue).
     """
-    from unittest.mock import Mock, patch
-    from copy import deepcopy
-    
+    from unittest.mock import patch
+
     # Get the NMinusOne instance through the analytics object's graph processor
     n_minus_one = NMinusOne(
         power_grid_model_dataset=valid_analytics._dataset,
@@ -191,14 +188,14 @@ def test_n_minus_one_power_flow_exception(valid_analytics):
         reactive_load_profiles=valid_analytics._reactive_load_profiles,
         graph_processor=valid_analytics._graph_processor,
     )
-    
+
     # Mock PowerGridModel to raise an exception
-    with patch('PowerGridModel.N_minus_1.PowerGridModel') as mock_pgm:
+    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm:
         mock_pgm.side_effect = Exception("Convergence failed")
-        
+
         # Run N-1 analysis - should skip all alternatives and return empty DataFrame
         results = n_minus_one.n_minus_one(outage_line_id=16)
-        
+
         # All alternatives should be skipped due to exception
         assert isinstance(results, pd.DataFrame)
         assert len(results) == 0
@@ -207,27 +204,27 @@ def test_n_minus_one_power_flow_exception(valid_analytics):
 def test_n_minus_one_none_line_results(valid_analytics):
     """
     Test that None line results are properly handled.
-    
+
     This tests the conditional skip when line_results is None.
     """
     from unittest.mock import Mock, patch
-    
+
     n_minus_one = NMinusOne(
         power_grid_model_dataset=valid_analytics._dataset,
         active_load_profiles=valid_analytics._active_load_profiles,
         reactive_load_profiles=valid_analytics._reactive_load_profiles,
         graph_processor=valid_analytics._graph_processor,
     )
-    
+
     # Mock PowerGridModel to return None for line results
-    with patch('PowerGridModel.N_minus_1.PowerGridModel') as mock_pgm_class:
+    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm_class:
         mock_instance = Mock()
         mock_pgm_class.return_value = mock_instance
         # Return dict without 'line' or ComponentType.line keys
         mock_instance.calculate_power_flow.return_value = {"node": np.array([])}
-        
+
         results = n_minus_one.n_minus_one(outage_line_id=16)
-        
+
         # All alternatives should be skipped due to None line_results
         assert isinstance(results, pd.DataFrame)
         assert len(results) == 0
@@ -236,39 +233,37 @@ def test_n_minus_one_none_line_results(valid_analytics):
 def test_n_minus_one_mismatched_timestamp_shape(valid_analytics):
     """
     Test that mismatched timestamp shapes are properly handled.
-    
+
     This tests the conditional skip when line_results.shape[0] != num_timestamps.
     """
     from unittest.mock import Mock, patch
+
     from power_grid_model import ComponentType
-    
+
     n_minus_one = NMinusOne(
         power_grid_model_dataset=valid_analytics._dataset,
         active_load_profiles=valid_analytics._active_load_profiles,
         reactive_load_profiles=valid_analytics._reactive_load_profiles,
         graph_processor=valid_analytics._graph_processor,
     )
-    
+
     # Create mock line results with wrong timestamp dimension
     num_timestamps = len(valid_analytics._active_load_profiles.index)
     wrong_num_timestamps = num_timestamps + 5
-    
+
     # Create dummy line results array with wrong first dimension
     mock_line_results = np.zeros(
-        (wrong_num_timestamps, 10),
-        dtype=[('id', 'i4'), ('loading', 'f8'), ('p_from', 'f8'), ('p_to', 'f8')]
+        (wrong_num_timestamps, 10), dtype=[("id", "i4"), ("loading", "f8"), ("p_from", "f8"), ("p_to", "f8")]
     )
-    mock_line_results['loading'] = 0.5
-    
-    with patch('PowerGridModel.N_minus_1.PowerGridModel') as mock_pgm_class:
+    mock_line_results["loading"] = 0.5
+
+    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm_class:
         mock_instance = Mock()
         mock_pgm_class.return_value = mock_instance
-        mock_instance.calculate_power_flow.return_value = {
-            ComponentType.line: mock_line_results
-        }
-        
+        mock_instance.calculate_power_flow.return_value = {ComponentType.line: mock_line_results}
+
         results = n_minus_one.n_minus_one(outage_line_id=16)
-        
+
         # All alternatives should be skipped due to shape mismatch
         assert isinstance(results, pd.DataFrame)
         assert len(results) == 0

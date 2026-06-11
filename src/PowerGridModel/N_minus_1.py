@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from power_grid_model import ComponentType, PowerGridModel
 
-from GraphTools.graph_processing import EdgeAlreadyDisabledError, GraphProcessor, IDNotFoundError
+from GraphTools.graph_processing import GraphProcessor
 
 
 class InvalidLineOutageError(Exception):
@@ -89,13 +89,14 @@ class NMinusOne:
 
             # 4. Create batch update dataset for time-series power flow
             timestamps = self._active_load_profiles.index
-            load_ids = [col for col in self._active_load_profiles.columns]
+            load_ids = list(self._active_load_profiles.columns)
 
             num_timestamps = len(timestamps)
             num_loads = len(load_ids)
 
             # Initialize the update array with correct shape and NaN values
             from power_grid_model import initialize_array
+
             sym_load_updates = initialize_array("update", "sym_load", (num_timestamps, num_loads))
 
             # Fill in the load data
@@ -112,7 +113,7 @@ class NMinusOne:
                     update_data=batch_dataset,
                     symmetric=True,
                 )
-            except Exception as e:
+            except Exception:
                 # If power flow fails for this alternative, skip it
                 continue
 
@@ -141,17 +142,22 @@ class NMinusOne:
             max_loading_timestamp = pd.to_datetime(timestamps[max_loading_timestamp_idx])
 
             # 8. Store results
-            rows.append({
-                "Alternative_Line_ID": alt_line_id,
-                "Max_Loading": max_loading_overall,
-                "Max_Loading_Line_ID": max_loading_line_id,
-                "Max_Loading_Timestamp": max_loading_timestamp,
-            })
+            rows.append(
+                {
+                    "Alternative_Line_ID": alt_line_id,
+                    "Max_Loading": max_loading_overall,
+                    "Max_Loading_Line_ID": max_loading_line_id,
+                    "Max_Loading_Timestamp": max_loading_timestamp,
+                }
+            )
 
         # Return results DataFrame
-        return pd.DataFrame(rows, columns=[
-            "Alternative_Line_ID",
-            "Max_Loading",
-            "Max_Loading_Line_ID",
-            "Max_Loading_Timestamp",
-        ])
+        return pd.DataFrame(
+            rows,
+            columns=[
+                "Alternative_Line_ID",
+                "Max_Loading",
+                "Max_Loading_Line_ID",
+                "Max_Loading_Timestamp",
+            ],
+        )

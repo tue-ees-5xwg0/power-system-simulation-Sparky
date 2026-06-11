@@ -218,9 +218,7 @@ class LVGridAnalytics:
                 graph_processor=self._graph_processor,
             )
         except AttributeError as e:
-            raise InvalidLineOutageError(
-                "Graph processor not initialized. Call validate_inputs() first."
-            ) from e
+            raise InvalidLineOutageError("Graph processor not initialized. Call validate_inputs() first.") from e
 
         # Run the analysis
         return n_minus_one_analyzer.n_minus_one(outage_line_id)
