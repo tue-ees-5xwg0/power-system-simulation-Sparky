@@ -1,32 +1,26 @@
-import os
-
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from power_grid_model import ComponentType, PowerGridModel, power_grid_meta_data
-from power_grid_model._core.data_types import Dataset
+from power_grid_model import ComponentType, PowerGridModel, initialize_array
 from power_grid_model.errors import PowerGridError
-from power_grid_model.utils import json_deserialize
 
-
-class ValidationException(Exception):
-    pass
-
-
-class ProfilesNotMatchingError(Exception):
-    pass
+from power_system_simulation.validate import (
+    ValidationException,
+    validate_active_reactive_profiles,
+    validate_power_grid_model,
+)
 
 
 class GridModel:
     def __init__(self, power_grid_model_path: str, active_load_profiles_path: str, reactive_load_profiles_path: str):
-        self._power_grid_model_dataset = _validate_power_grid_model(power_grid_model_path)
-        self._active_load_profiles, self._reactive_load_profiles = _validate_active_reactive_profiles(
+        self._power_grid_model_dataset = validate_power_grid_model(power_grid_model_path)
+        self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
             active_load_profiles_path, reactive_load_profiles_path
         )
         self._model = self._initialize_model()
         self._pgm_batch_dataset = self._create_pgm_batch_dataset()
 
-    def AggregateResults(self, *args, **kwargs) -> tuple[Dataset, Dataset]:
+    def AggregateResults(self, *args, **kwargs) -> tuple[DataFrame, DataFrame]:
         preParseDataSet = self._RunModel(*args, **kwargs)
         node_results = self._output_table_row_per_timestamp(preParseDataSet)
         line_results = self._output_table_row_per_line(preParseDataSet)
@@ -57,7 +51,7 @@ class GridModel:
         if node_data is None:
             raise ValueError("Node results not found in power flow output.")
 
-        timestamps = pd.Index(self._active_load_profiles.index)
+        timestamps = pd.to_datetime(self._active_load_profiles.index)
         if node_data.ndim == 1:
             node_data = node_data[np.newaxis, :]
         if node_data.shape[0] != len(timestamps):
@@ -99,7 +93,7 @@ class GridModel:
         if line_data is None:
             raise ValueError("Line results not found in power flow output.")
 
-        timestamps = pd.Index(self._active_load_profiles.index)
+        timestamps = pd.to_datetime(self._active_load_profiles.index)
         if line_data.ndim == 1:
             line_data = line_data[np.newaxis, :]
         if line_data.shape[0] != len(timestamps):
@@ -109,7 +103,7 @@ class GridModel:
         loading = line_data["loading"]
 
         if len(timestamps) > 1:
-            dt_hours = ((timestamps[1:] - timestamps[:-1]) / pd.Timedelta(hours=1)).to_numpy()
+            dt_hours = (timestamps[1:] - timestamps[:-1]).total_seconds().to_numpy() / 3600.0
             total_loss_kwh = (0.5 * (p_loss[:-1] + p_loss[1:]) * dt_hours[:, None]).sum(axis=0) / 1000.0
         else:
             total_loss_kwh = np.zeros(line_data.shape[1], dtype=float)
@@ -148,84 +142,15 @@ class GridModel:
         timestamps = self._active_load_profiles.index
         load_ids = [col for col in self._active_load_profiles.columns if col != "Timestamp"]
 
-        update_meta = power_grid_meta_data["update"]["sym_load"]
-        sym_load_dtype = update_meta.dtype
-        status_nan = update_meta.nan_scalar["status"][0]
+        num_timestamps = len(timestamps)
+        num_loads = len(load_ids)
 
-        sym_load_updates = []
-        for ts in timestamps:
-            ts_updates = []
-            for load_id in load_ids:
-                ts_updates.append(
-                    (
-                        int(load_id),
-                        status_nan,
-                        float(self._active_load_profiles.loc[ts, load_id]),
-                        float(self._reactive_load_profiles.loc[ts, load_id]),
-                    )
-                )
-            sym_load_updates.append(np.array(ts_updates, dtype=sym_load_dtype))
+        # 1. Automatically create a 2D array pre-filled with the correct NaN values
+        sym_load_updates = initialize_array("update", "sym_load", (num_timestamps, num_loads))
 
-        return {"sym_load": np.stack(sym_load_updates, axis=0)}
+        # 2. Fill in the specific data using vectorized assignment
+        sym_load_updates["id"] = [int(load_id) for load_id in load_ids]
+        sym_load_updates["p_specified"] = self._active_load_profiles[load_ids].to_numpy()
+        sym_load_updates["q_specified"] = self._reactive_load_profiles[load_ids].to_numpy()
 
-
-def _validate_power_grid_model(power_grid_model_path: str) -> Dataset:
-    # check string is not empty
-    if not power_grid_model_path:
-        raise ValidationException("Power grid model path is required.")
-    # check file exists
-    if os.path.isfile(power_grid_model_path) is False:
-        raise ValidationException(f"Power grid model file not found: {power_grid_model_path}")
-    # check file extension is json
-    if not power_grid_model_path.endswith(".json"):
-        raise ValidationException(f"Power grid model file must be a JSON file: {power_grid_model_path}")
-    # try to deserialize file
-    try:
-        with open(power_grid_model_path) as f:
-            power_grid_model_data = json_deserialize(f.read())
-        return power_grid_model_data
-    except ValueError as e:
-        raise ValidationException("Power grid model data is inconsistent or a component is unknown.") from e
-    except PowerGridError as e:
-        raise ValidationException("There was a internal error in the power grid model.") from e
-
-
-def _validate_active_reactive_profiles(
-    active_load_profiles_path: str, reactive_load_profiles_path: str
-) -> tuple[DataFrame, DataFrame]:
-    active_load_profiles = _validate_load_profile("Active", active_load_profiles_path)
-    reactive_load_profiles = _validate_load_profile("Reactive", reactive_load_profiles_path)
-    _validate_profiles_match(active_load_profiles, reactive_load_profiles)
-    return active_load_profiles, reactive_load_profiles
-
-
-def _validate_load_profile(Type: str, load_profiles_path: str) -> DataFrame:
-    # check string is not empty
-    if not load_profiles_path:
-        raise ValidationException(f"{Type} load profiles path is required.")
-    # check files exist
-    if os.path.isfile(load_profiles_path) is False:
-        raise ValidationException(f"{Type} load profiles file not found: {load_profiles_path}")
-    # check file extensions are parquet
-    if not load_profiles_path.endswith(".parquet"):
-        raise ValidationException(f"{Type} load profiles file must be a Parquet: {load_profiles_path}")
-    # try to read files
-    try:
-        load_profiles = pd.read_parquet(load_profiles_path)
-    except Exception as e:
-        raise ValidationException(f"Error occurred while reading {Type} load profiles Parquet.") from e
-
-    return load_profiles
-
-
-def _validate_profiles_match(active_load_profiles: DataFrame, reactive_load_profiles: DataFrame) -> None:
-    if active_load_profiles.shape != reactive_load_profiles.shape:
-        raise ProfilesNotMatchingError("Active and reactive load profiles do not match.")
-
-    # Check if ID's match
-    if not active_load_profiles.columns.equals(reactive_load_profiles.columns):
-        raise ProfilesNotMatchingError("Active and reactive load profiles have mismatched Load IDs.")
-
-    # Check if timestamps match
-    if not active_load_profiles.index.equals(reactive_load_profiles.index):
-        raise ProfilesNotMatchingError("Active and reactive load profiles have mismatched timestamps.")
+        return {"sym_load": sym_load_updates}
