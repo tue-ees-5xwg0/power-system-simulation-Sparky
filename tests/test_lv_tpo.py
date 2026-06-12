@@ -1,15 +1,9 @@
-import numpy as np
-from power_grid_model import PowerGridModel
 import pytest
 
-from power_system_simulation.tap_position_optimization import minimize_average_voltage_deviation, minimize_total_loss
-from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
 from power_system_simulation.lv_grid_analytics import (
-    Assignment3ValidationError,
     LVGridAnalytics,
-    ProfileMismatchError,
 )
-
+from power_system_simulation.tap_position_optimization import minimize_average_voltage_deviation, minimize_total_loss
 
 FILE_PATH_VALID_INPUT = "tests/small_network"
 FILE_PATH_FALSE_INPUT = "tests/small_network"
@@ -25,6 +19,7 @@ PD_ASSERT_FRAME_EQUAL_KWARGS = {
     "atol": ASSERT_MAX_ATOLERANCE,
 }
 
+
 @pytest.fixture
 def valid_grid() -> LVGridAnalytics:
     return LVGridAnalytics(
@@ -35,12 +30,15 @@ def valid_grid() -> LVGridAnalytics:
         meta_data=FILE_PATH_VALID_INPUT + "/meta_data.json",
     )
 
+
 def test_tap_optimization_inside_lv_grid_analytics_minimize_average_voltage_deviation(valid_grid):
     # This test ensures that the optimize_tap_position method is available and can be called without errors.
     try:
-        valid_grid.optimize_tap_position(minimize_average_voltage_deviation)  # Using the minimize_average_voltage_deviation criterion
+        # Using the minimize_average_voltage_deviation criterion
+        valid_grid.optimize_tap_position(minimize_average_voltage_deviation)
     except Exception as e:
         pytest.fail(f"optimize_tap_position raised an exception: {e}")
+
 
 def test_tap_optimization_inside_lv_grid_analytics_minimize_total_loss(valid_grid):
     # This test ensures that the optimize_tap_position method is available and can be called without errors.

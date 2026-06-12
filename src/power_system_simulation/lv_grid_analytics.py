@@ -9,6 +9,8 @@ from power_system_simulation.graph_processing import (
     IDNotUniqueError,
     InputLengthDoesNotMatchError,
 )
+from power_system_simulation.N_minus_1 import InvalidLineOutageError, NMinusOne
+from power_system_simulation.tap_position_optimization import TapOptimizationError, TapPositionOptimization
 from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
@@ -16,8 +18,6 @@ from power_system_simulation.validate import (
     validate_load_profile,
     validate_power_grid_model,
 )
-from power_system_simulation.N_minus_1 import InvalidLineOutageError, NMinusOne
-from power_system_simulation.tap_position_optimization import TapOptimizationError, TapPositionOptimization
 
 __all__ = [
     "Assignment3ValidationError",
@@ -76,9 +76,7 @@ class LVGridAnalytics(TapPositionOptimization):
             raise Assignment3ValidationError(f"Tap position optimization input validation failed: {e}") from e
 
     @staticmethod
-    def _resolve_feeder_line_ids(
-        feeder_line_ids: list[int] | None, meta_data: str | PathLike[str] | None
-    ) -> list[int]:
+    def _resolve_feeder_line_ids(feeder_line_ids: list[int] | None, meta_data: str | PathLike[str] | None) -> list[int]:
         """Return feeder line IDs from either a direct list or a meta_data.json path."""
         if feeder_line_ids is not None and meta_data is not None:
             raise ValidationException("Provide either feeder_line_ids or meta_data, not both.")
