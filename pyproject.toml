@@ -78,4 +78,4 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/PowerGridModel"]
+packages = ["src/power_system_simulation"]
