@@ -14,6 +14,16 @@ from power_system_simulation.validate import (
     validate_power_grid_model,
 )
 from PowerGridModel.N_minus_1 import InvalidLineOutageError, NMinusOne
+from PowerGridModel.tap_position_optimization import TapOptimizationError, TapPositionOptimization
+
+__all__ = [
+    "Assignment3ValidationError",
+    "InvalidFeederError",
+    "InvalidLineOutageError",
+    "LVGridAnalytics",
+    "ProfileMismatchError",
+    "TapOptimizationError",
+]
 
 
 # Define custom exceptions for validation errors in Assignment 3
@@ -29,11 +39,7 @@ class ProfileMismatchError(Assignment3ValidationError):
     pass
 
 
-class TapOptimizationError(Assignment3ValidationError):
-    pass
-
-
-class LVGridAnalytics:
+class LVGridAnalytics(TapPositionOptimization):
     def __init__(
         self,
         grid_path: str,
@@ -60,6 +66,12 @@ class LVGridAnalytics:
         except ProfilesNotMatchingError as e:
             raise ProfileMismatchError(str(e)) from e
 
+        try:
+            self._validate_tap_inputs()
+            self._tap_transformer_id = self._resolve_transformer_id(None)
+        except TapOptimizationError as e:
+            raise Assignment3ValidationError(f"Tap position optimization input validation failed: {e}") from e
+
     def validate_inputs(self) -> None:
         """Runs all the validation checks for Assignemnt 3"""
 
@@ -77,6 +89,8 @@ class LVGridAnalytics:
         self._validate_feeder_connections()
         # Check if grid is conneted and acyclic
         self._validate_topology()
+        # Check if the tap position optimization inputs are valid
+        self._validate_tap_inputs()
 
     def _validate_topology(self) -> None:
         """Extracts grid data and uses GraphProcessor to validate topology."""
