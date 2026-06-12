@@ -20,7 +20,7 @@
       {"id": 10, "node": 0, "status": 1, "u_ref": 1.05, "sk": 200000000}
     ],
     "transformer": [
-      {"id": 11, "from_node": 0, "to_node": 1, "from_status": 1, "to_status": 1, "u1": 10750, "u2": 420, "sn": 630000, "uk": 0.041, "pk": 5200, "i0": 0.01, "p0": 745, "winding_from": 2, "winding_to": 1, "clock": 5, "tap_side": 0, "tap_pos": 3, "tap_min": 5, "tap_max": 1, "tap_nom": 3, "tap_size": 250, "r_grounding_to": 0, "x_grounding_to": 0}
+      {"id": 11, "from_node": 0, "to_node": 1, "from_status": 1, "to_status": 1, "u1": 10750, "u2": 420, "sn": 630000, "uk": 0.041, "pk": 5200, "i0": 0.01, "p0": 745, "winding_from": 2, "winding_to": 1, "clock": 5, "tap_side": 0, "tap_pos": 3, "tap_min": 1, "tap_max": 5, "tap_nom": 3, "tap_size": 250, "r_grounding_to": 0, "x_grounding_to": 0}
     ],
     "sym_load": [
       {"id": 12, "node": 3, "status": 1, "type": 0, "p_specified": 0, "q_specified": 0},

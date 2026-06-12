@@ -1,3 +1,6 @@
+import json
+from os import PathLike
+
 from GraphTools.graph_processing import (
     GraphCycleError,
     GraphNotFullyConnectedError,
@@ -43,19 +46,19 @@ class LVGridAnalytics(TapPositionOptimization):
     def __init__(
         self,
         grid_path: str,
-        feeder_line_ids: list[int],
-        active_load_profile_path: str,
-        reactive_load_profile_path: str,
-        ev_profile_path: str,
+        feeder_line_ids: list[int] | None = None,
+        active_load_profile_path: str = "",
+        reactive_load_profile_path: str = "",
+        ev_profile_path: str = "",
+        meta_data: str | PathLike[str] | None = None,
     ) -> None:
         """
         Initialize the LVGridAnalytics object with the given parameters.
         Load the grid data and profiles from the specified paths.
         Validate the input data and raise exceptions if any validation fails.
         """
-        self._feeder_line_ids = feeder_line_ids
-
         try:
+            self._feeder_line_ids = self._resolve_feeder_line_ids(feeder_line_ids, meta_data)
             self._dataset = validate_power_grid_model(grid_path)
             self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
                 active_load_profile_path, reactive_load_profile_path
@@ -71,6 +74,47 @@ class LVGridAnalytics(TapPositionOptimization):
             self._tap_transformer_id = self._resolve_transformer_id(None)
         except TapOptimizationError as e:
             raise Assignment3ValidationError(f"Tap position optimization input validation failed: {e}") from e
+
+    @staticmethod
+    def _resolve_feeder_line_ids(
+        feeder_line_ids: list[int] | None, meta_data: str | PathLike[str] | None
+    ) -> list[int]:
+        """Return feeder line IDs from either a direct list or a meta_data.json path."""
+        if feeder_line_ids is not None and meta_data is not None:
+            raise ValidationException("Provide either feeder_line_ids or meta_data, not both.")
+
+        if feeder_line_ids is not None:
+            line_ids_are_invalid = not isinstance(feeder_line_ids, list) or not all(
+                isinstance(line_id, int) for line_id in feeder_line_ids
+            )
+            if line_ids_are_invalid:
+                raise ValidationException("Feeder line IDs must be provided as a list of line IDs.")
+            return feeder_line_ids
+
+        if meta_data is None:
+            raise ValidationException("Either feeder_line_ids or meta_data is required.")
+        if not isinstance(meta_data, str | PathLike):
+            raise ValidationException("Metadata must be provided as a meta_data.json path.")
+
+        metadata_path = str(meta_data)
+        if not metadata_path:
+            raise ValidationException("Metadata path is required.")
+        if not metadata_path.endswith(".json"):
+            raise ValidationException(f"Metadata file must be a JSON file: {metadata_path}")
+
+        try:
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+        except FileNotFoundError as e:
+            raise ValidationException(f"Metadata file not found: {metadata_path}") from e
+        except json.JSONDecodeError as e:
+            raise ValidationException(f"Metadata file is not valid JSON: {metadata_path}") from e
+
+        lv_feeders = metadata.get("lv_feeders")
+        if not isinstance(lv_feeders, list) or not all(isinstance(line_id, int) for line_id in lv_feeders):
+            raise ValidationException("Metadata file must contain an 'lv_feeders' list of line IDs.")
+
+        return lv_feeders
 
     def validate_inputs(self) -> None:
         """Runs all the validation checks for Assignemnt 3"""

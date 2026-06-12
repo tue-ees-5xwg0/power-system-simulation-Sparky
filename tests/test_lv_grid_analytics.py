@@ -40,6 +40,42 @@ def test_power_grid_initialization(valid_grid):
     assert valid_grid is not None
 
 
+def test_initialization_accepts_metadata_path():
+    grid = LVGridAnalytics(
+        grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+        ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
+        meta_data=FILE_PATH_VALID_INPUT + "/meta_data.json",
+    )
+
+    assert grid._feeder_line_ids == [16, 20]
+
+
+def test_resolve_feeder_line_ids_accepts_metadata_path():
+    feeder_line_ids = LVGridAnalytics._resolve_feeder_line_ids(None, FILE_PATH_VALID_INPUT + "/meta_data.json")
+
+    assert feeder_line_ids == [16, 20]
+
+
+def test_resolve_feeder_line_ids_rejects_both_feeder_sources():
+    with pytest.raises(ValidationException, match="either feeder_line_ids or meta_data"):
+        LVGridAnalytics._resolve_feeder_line_ids([16, 20], FILE_PATH_VALID_INPUT + "/meta_data.json")
+
+
+def test_resolve_feeder_line_ids_rejects_missing_metadata():
+    with pytest.raises(ValidationException, match="Metadata file not found"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, FILE_PATH_VALID_INPUT + "/missing_meta_data.json")
+
+
+def test_resolve_feeder_line_ids_rejects_invalid_metadata(tmp_path):
+    metadata_path = tmp_path / "meta_data.json"
+    metadata_path.write_text('{"lv_feeders": ["16"]}')
+
+    with pytest.raises(ValidationException, match="'lv_feeders' list of line IDs"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
+
+
 def test_validate_inputs_with_valid_data(valid_grid):
     try:
         valid_grid.validate_inputs()
