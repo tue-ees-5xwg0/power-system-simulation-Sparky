@@ -3,8 +3,8 @@ import pandas as pd
 import pytest
 from power_grid_model import BranchSide, LoadGenType, WindingType, initialize_array
 
-from PowerGridModel.lv_grid_analytics import LVGridAnalytics
-from PowerGridModel.tap_position_optimization import (
+from power_system_simulation.lv_grid_analytics import LVGridAnalytics
+from power_system_simulation.tap_position_optimization import (
     TapOptimizationError,
     TapOptimizationResult,
     TapPositionOptimization,

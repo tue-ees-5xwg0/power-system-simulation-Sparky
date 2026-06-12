@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
-from PowerGridModel.lv_grid_analytics import (
+from power_system_simulation.lv_grid_analytics import (
     Assignment3ValidationError,
     LVGridAnalytics,
     ProfileMismatchError,

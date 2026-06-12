@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from PowerGridModel.lv_grid_analytics import LVGridAnalytics
-from PowerGridModel.N_minus_1 import InvalidLineOutageError as NMinusOneError, NMinusOne
+from power_system_simulation.lv_grid_analytics import LVGridAnalytics
+from power_system_simulation.N_minus_1 import InvalidLineOutageError as NMinusOneError, NMinusOne
 
 FILE_PATH_VALID_INPUT = "tests/small_network"
 
@@ -71,7 +71,7 @@ def test_n_minus_one_another_valid_line(valid_analytics):
 def test_n_minus_one_invalid_line_id(valid_analytics):
     """Test N-1 analysis with an invalid line ID."""
     # Line 999 doesn't exist
-    from PowerGridModel.N_minus_1 import InvalidLineOutageError as NMinusOneError
+    from power_system_simulation.N_minus_1 import InvalidLineOutageError as NMinusOneError
 
     with pytest.raises(NMinusOneError, match="not found"):
         valid_analytics.n_minus_one(outage_line_id=999)
@@ -189,8 +189,8 @@ def test_n_minus_one_power_flow_exception(valid_analytics):
         graph_processor=valid_analytics._graph_processor,
     )
 
-    # Mock PowerGridModel to raise an exception
-    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm:
+    # Mock power_system_simulation to raise an exception
+    with patch("power_system_simulation.N_minus_1.PowerGridModel") as mock_pgm:
         mock_pgm.side_effect = Exception("Convergence failed")
 
         # Run N-1 analysis - should skip all alternatives and return empty DataFrame
@@ -216,8 +216,8 @@ def test_n_minus_one_none_line_results(valid_analytics):
         graph_processor=valid_analytics._graph_processor,
     )
 
-    # Mock PowerGridModel to return None for line results
-    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm_class:
+    # Mock power_system_simulation to return None for line results
+    with patch("power_system_simulation.N_minus_1.PowerGridModel") as mock_pgm_class:
         mock_instance = Mock()
         mock_pgm_class.return_value = mock_instance
         # Return dict without 'line' or ComponentType.line keys
@@ -257,7 +257,7 @@ def test_n_minus_one_mismatched_timestamp_shape(valid_analytics):
     )
     mock_line_results["loading"] = 0.5
 
-    with patch("PowerGridModel.N_minus_1.PowerGridModel") as mock_pgm_class:
+    with patch("power_system_simulation.N_minus_1.PowerGridModel") as mock_pgm_class:
         mock_instance = Mock()
         mock_pgm_class.return_value = mock_instance
         mock_instance.calculate_power_flow.return_value = {ComponentType.line: mock_line_results}

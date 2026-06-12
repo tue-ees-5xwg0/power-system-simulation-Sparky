@@ -1,7 +1,7 @@
 import json
 from os import PathLike
 
-from GraphTools.graph_processing import (
+from power_system_simulation.graph_processing import (
     GraphCycleError,
     GraphNotFullyConnectedError,
     GraphProcessor,
@@ -16,8 +16,8 @@ from power_system_simulation.validate import (
     validate_load_profile,
     validate_power_grid_model,
 )
-from PowerGridModel.N_minus_1 import InvalidLineOutageError, NMinusOne
-from PowerGridModel.tap_position_optimization import TapOptimizationError, TapPositionOptimization
+from power_system_simulation.N_minus_1 import InvalidLineOutageError, NMinusOne
+from power_system_simulation.tap_position_optimization import TapOptimizationError, TapPositionOptimization
 
 __all__ = [
     "Assignment3ValidationError",

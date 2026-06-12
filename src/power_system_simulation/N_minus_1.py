@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from power_grid_model import ComponentType, PowerGridModel
 
-from GraphTools.graph_processing import GraphProcessor
+from power_system_simulation.graph_processing import GraphProcessor
 
 
 class InvalidLineOutageError(Exception):

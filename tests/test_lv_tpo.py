@@ -2,9 +2,9 @@ import numpy as np
 from power_grid_model import PowerGridModel
 import pytest
 
-from PowerGridModel.tap_position_optimization import minimize_average_voltage_deviation, minimize_total_loss
+from power_system_simulation.tap_position_optimization import minimize_average_voltage_deviation, minimize_total_loss
 from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
-from PowerGridModel.lv_grid_analytics import (
+from power_system_simulation.lv_grid_analytics import (
     Assignment3ValidationError,
     LVGridAnalytics,
     ProfileMismatchError,
