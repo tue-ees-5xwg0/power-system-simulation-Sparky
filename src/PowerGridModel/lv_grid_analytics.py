@@ -13,6 +13,7 @@ from power_system_simulation.validate import (
     validate_load_profile,
     validate_power_grid_model,
 )
+from PowerGridModel.N_minus_1 import InvalidLineOutageError, NMinusOne
 from PowerGridModel.tap_position_optimization import TapOptimizationError, TapPositionOptimization
 
 __all__ = [
@@ -31,10 +32,6 @@ class Assignment3ValidationError(Exception):
 
 
 class InvalidFeederError(Assignment3ValidationError):
-    pass
-
-
-class InvalidLineOutageError(Assignment3ValidationError):
     pass
 
 
@@ -199,3 +196,43 @@ class LVGridAnalytics(TapPositionOptimization):
         for line_id in self._feeder_line_ids:
             if line_from_node_dict.get(line_id) != transformer_to_node:
                 raise ValidationException(f"Feeder line ID {line_id} is not connected to the transformer.")
+
+    def n_minus_one(self, outage_line_id: int) -> None:
+        """
+        Perform N-1 contingency analysis for a given line outage.
+
+        This method analyzes what happens when a single line is disconnected
+        and identifies alternative topologies that restore grid connectivity.
+
+        Args:
+            outage_line_id: ID of the line to be disconnected
+
+        Returns:
+            DataFrame with columns:
+                - Alternative_Line_ID: Line that can be reconnected
+                - Max_Loading: Maximum loading (p.u.) across all scenarios
+                - Max_Loading_Line_ID: Line experiencing the maximum loading
+                - Max_Loading_Timestamp: When the maximum loading occurs
+
+        Raises:
+            InvalidLineOutageError: If line doesn't exist or is already disabled
+        """
+        # Validate inputs first
+        try:
+            self.validate_inputs()
+        except Exception as e:
+            raise InvalidLineOutageError(f"Input validation failed: {e}")  # noqa: B904
+
+        # Create N-1 analyzer instance
+        try:
+            n_minus_one_analyzer = NMinusOne(
+                power_grid_model_dataset=self._dataset,
+                active_load_profiles=self._active_load_profiles,
+                reactive_load_profiles=self._reactive_load_profiles,
+                graph_processor=self._graph_processor,
+            )
+        except AttributeError as e:
+            raise InvalidLineOutageError("Graph processor not initialized. Call validate_inputs() first.") from e
+
+        # Run the analysis
+        return n_minus_one_analyzer.n_minus_one(outage_line_id)
