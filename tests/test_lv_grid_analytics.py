@@ -1,10 +1,14 @@
 import numpy as np
 import pytest
 
+from power_system_simulation import lv_grid_analytics as lv_grid_analytics_module
+from power_system_simulation.graph_processing import IDNotFoundError
 from power_system_simulation.lv_grid_analytics import (
     Assignment3ValidationError,
+    InvalidLineOutageError,
     LVGridAnalytics,
     ProfileMismatchError,
+    TapOptimizationError,
 )
 from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
 
@@ -63,9 +67,45 @@ def test_resolve_feeder_line_ids_rejects_both_feeder_sources():
         LVGridAnalytics._resolve_feeder_line_ids([16, 20], FILE_PATH_VALID_INPUT + "/meta_data.json")
 
 
+def test_resolve_feeder_line_ids_rejects_invalid_direct_list():
+    with pytest.raises(ValidationException, match="list of line IDs"):
+        LVGridAnalytics._resolve_feeder_line_ids([16, "20"], None)
+
+
+def test_resolve_feeder_line_ids_requires_feeder_source():
+    with pytest.raises(ValidationException, match="Either feeder_line_ids or meta_data is required"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, None)
+
+
+def test_resolve_feeder_line_ids_rejects_non_path_metadata():
+    with pytest.raises(ValidationException, match="Metadata must be provided"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, 16)
+
+
+def test_resolve_feeder_line_ids_rejects_empty_metadata_path():
+    with pytest.raises(ValidationException, match="Metadata path is required"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, "")
+
+
+def test_resolve_feeder_line_ids_rejects_non_json_metadata_path(tmp_path):
+    metadata_path = tmp_path / "meta_data.txt"
+    metadata_path.write_text('{"lv_feeders": [16, 20]}')
+
+    with pytest.raises(ValidationException, match="Metadata file must be a JSON file"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
+
+
 def test_resolve_feeder_line_ids_rejects_missing_metadata():
     with pytest.raises(ValidationException, match="Metadata file not found"):
         LVGridAnalytics._resolve_feeder_line_ids(None, FILE_PATH_VALID_INPUT + "/missing_meta_data.json")
+
+
+def test_resolve_feeder_line_ids_rejects_malformed_json(tmp_path):
+    metadata_path = tmp_path / "meta_data.json"
+    metadata_path.write_text("{not-json")
+
+    with pytest.raises(ValidationException, match="not valid JSON"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
 
 
 def test_resolve_feeder_line_ids_rejects_invalid_metadata(tmp_path):
@@ -74,6 +114,49 @@ def test_resolve_feeder_line_ids_rejects_invalid_metadata(tmp_path):
 
     with pytest.raises(ValidationException, match="'lv_feeders' list of line IDs"):
         LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
+
+
+def test_initialization_wraps_validation_errors():
+    with pytest.raises(Assignment3ValidationError, match="Feeder line IDs"):
+        LVGridAnalytics(
+            grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+            feeder_line_ids=[16, "20"],
+            active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+            reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+            ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
+        )
+
+
+def test_initialization_wraps_profile_mismatch_errors(monkeypatch):
+    def raise_profile_mismatch(*args, **kwargs):
+        raise ProfilesNotMatchingError("profile timestamps differ")
+
+    monkeypatch.setattr(lv_grid_analytics_module, "validate_active_reactive_profiles", raise_profile_mismatch)
+
+    with pytest.raises(ProfileMismatchError, match="profile timestamps differ"):
+        LVGridAnalytics(
+            grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+            feeder_line_ids=[16, 20],
+            active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+            reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+            ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
+        )
+
+
+def test_initialization_wraps_tap_optimization_errors(monkeypatch):
+    def raise_tap_error(self):
+        raise TapOptimizationError("missing transformer tap settings")
+
+    monkeypatch.setattr(LVGridAnalytics, "_validate_tap_inputs", raise_tap_error)
+
+    with pytest.raises(Assignment3ValidationError, match="Tap position optimization input validation failed"):
+        LVGridAnalytics(
+            grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+            feeder_line_ids=[16, 20],
+            active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+            reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+            ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
+        )
 
 
 def test_validate_inputs_with_valid_data(valid_grid):
@@ -102,6 +185,21 @@ def test_validate_profile_sym_loads_mismatch(valid_grid):
     # Add a dummy ID that does not exist in the grid
     valid_grid._active_load_profiles[999999] = 0.0
     with pytest.raises(ProfileMismatchError, match="Load profile IDs do not perfectly match"):
+        valid_grid._validate_profile_sym_loads()
+
+
+def test_validate_profile_sym_loads_missing_grid_load_in_profile(valid_grid):
+    missing_profile_column = valid_grid._active_load_profiles.columns[0]
+    valid_grid._active_load_profiles = valid_grid._active_load_profiles.drop(columns=[missing_profile_column])
+
+    with pytest.raises(ProfileMismatchError, match="IDs in grid but not in profile"):
+        valid_grid._validate_profile_sym_loads()
+
+
+def test_validate_profile_sym_loads_requires_sym_load_component(valid_grid):
+    del valid_grid._dataset["sym_load"]
+
+    with pytest.raises(Assignment3ValidationError, match="No sym_load components"):
         valid_grid._validate_profile_sym_loads()
 
 
@@ -149,3 +247,64 @@ def test_validate_topology_cyclic(valid_grid):
     valid_grid._dataset["line"]["to_status"][:] = 1
     with pytest.raises(Assignment3ValidationError, match="contains cycles"):
         valid_grid._validate_topology()
+
+
+def test_validate_topology_wraps_invalid_graph_structure(valid_grid, monkeypatch):
+    def raise_invalid_graph_structure(**kwargs):
+        raise IDNotFoundError("edge endpoint is missing")
+
+    monkeypatch.setattr(lv_grid_analytics_module, "GraphProcessor", raise_invalid_graph_structure)
+
+    with pytest.raises(Assignment3ValidationError, match="Invalid graph structure"):
+        valid_grid._validate_topology()
+
+
+def test_n_minus_one_wraps_input_validation_errors(valid_grid):
+    valid_grid._feeder_line_ids = [999999]
+
+    with pytest.raises(InvalidLineOutageError, match="Input validation failed"):
+        valid_grid.n_minus_one(outage_line_id=16)
+
+
+def test_n_minus_one_delegates_to_analyzer(valid_grid, monkeypatch):
+    expected_result = object()
+    captured = {}
+
+    class FakeNMinusOne:
+        def __init__(
+            self,
+            power_grid_model_dataset,
+            active_load_profiles,
+            reactive_load_profiles,
+            graph_processor,
+        ):
+            captured["dataset"] = power_grid_model_dataset
+            captured["active_profiles"] = active_load_profiles
+            captured["reactive_profiles"] = reactive_load_profiles
+            captured["graph_processor"] = graph_processor
+
+        def n_minus_one(self, outage_line_id):
+            captured["outage_line_id"] = outage_line_id
+            return expected_result
+
+    monkeypatch.setattr(lv_grid_analytics_module, "NMinusOne", FakeNMinusOne)
+
+    result = valid_grid.n_minus_one(outage_line_id=16)
+
+    assert result is expected_result
+    assert captured == {
+        "dataset": valid_grid._dataset,
+        "active_profiles": valid_grid._active_load_profiles,
+        "reactive_profiles": valid_grid._reactive_load_profiles,
+        "graph_processor": valid_grid._graph_processor,
+        "outage_line_id": 16,
+    }
+
+
+def test_n_minus_one_requires_graph_processor(valid_grid, monkeypatch):
+    monkeypatch.setattr(valid_grid, "validate_inputs", lambda: None)
+    if hasattr(valid_grid, "_graph_processor"):
+        del valid_grid._graph_processor
+
+    with pytest.raises(InvalidLineOutageError, match="Graph processor not initialized"):
+        valid_grid.n_minus_one(outage_line_id=16)
