@@ -22,9 +22,7 @@ def run_ev_penetration(
     if not isinstance(penetration_level, (int, float)):
         raise ValidationException("Penetration level must be a number.")
     if penetration_level <= 0.0 or penetration_level > 1.0:
-        raise ValidationException(
-            f"Penetration level must be in range (0.0, 1.0]. Got {penetration_level}."
-        )
+        raise ValidationException(f"Penetration level must be in range (0.0, 1.0]. Got {penetration_level}.")
 
     total_houses = len(dataset["sym_load"]["id"])
     evs_per_feeder = math.floor(penetration_level * total_houses / len(feeder_line_ids))
@@ -48,9 +46,7 @@ def run_ev_penetration(
 
             for load_id in selected_load_ids:
                 if not available_ev_profiles:
-                    raise ValidationException(
-                        "Not enough EV profiles to assign to all selected houses."
-                    )
+                    raise ValidationException("Not enough EV profiles to assign to all selected houses.")
 
                 profile_idx = rng.choice(len(available_ev_profiles))
                 ev_profile_col = available_ev_profiles.pop(profile_idx)

@@ -307,4 +307,3 @@ class LVGridAnalytics(TapPositionOptimization):
             raise Assignment3ValidationError(str(e)) from e
         except Exception as e:
             raise Assignment3ValidationError(f"EV penetration failed: {e}") from e
-

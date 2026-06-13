@@ -48,6 +48,7 @@ def valid_grid() -> LVGridAnalytics:
         ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
     )
 
+
 def test_power_grid_initialization(valid_grid):
     # Initialization logic is implicitly tested via the fixture.
     # This test ensures it does not raise exceptions.
