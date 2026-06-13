@@ -1,6 +1,9 @@
 import json
 from os import PathLike
 
+import pandas as pd
+
+from power_system_simulation.ev_penetration import run_ev_penetration as _run_ev_penetration_impl
 from power_system_simulation.graph_processing import (
     GraphCycleError,
     GraphNotFullyConnectedError,
@@ -278,3 +281,30 @@ class LVGridAnalytics(TapPositionOptimization):
 
         # Run the analysis
         return n_minus_one_analyzer.n_minus_one(outage_line_id)
+
+    def run_ev_penetration(
+        self,
+        penetration_level: float,
+        random_seed: int | None = None,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        try:
+            self.validate_inputs()
+        except Exception as e:
+            raise Assignment3ValidationError(f"Input validation failed: {e}") from e
+
+        try:
+            return _run_ev_penetration_impl(
+                dataset=self._dataset,
+                active_load_profiles=self._active_load_profiles,
+                reactive_load_profiles=self._reactive_load_profiles,
+                ev_pool=self._ev_pool,
+                feeder_line_ids=self._feeder_line_ids,
+                graph_processor=self._graph_processor,
+                penetration_level=penetration_level,
+                random_seed=random_seed,
+            )
+        except ValidationException as e:
+            raise Assignment3ValidationError(str(e)) from e
+        except Exception as e:
+            raise Assignment3ValidationError(f"EV penetration failed: {e}") from e
+

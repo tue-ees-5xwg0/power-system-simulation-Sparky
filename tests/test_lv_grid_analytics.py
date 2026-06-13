@@ -27,16 +27,26 @@ PD_ASSERT_FRAME_EQUAL_KWARGS = {
 }
 
 
-@pytest.fixture
-def valid_grid() -> LVGridAnalytics:
+def create_valid_grid() -> LVGridAnalytics:
     return LVGridAnalytics(
         grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
-        feeder_line_ids=[16, 20],  # Replace with actual valid feeder IDs for your test network if needed
+        feeder_line_ids=[16, 20],
         active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
         reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
         ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
     )
 
+
+@pytest.fixture
+def valid_grid() -> LVGridAnalytics:
+    return create_valid_grid()
+    return LVGridAnalytics(
+        grid_path=FILE_PATH_VALID_INPUT + "/input_network_data.json",
+        feeder_line_ids=[16, 20],
+        active_load_profile_path=FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
+        reactive_load_profile_path=FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
+        ev_profile_path=FILE_PATH_VALID_INPUT + "/ev_active_power_profile.parquet",
+    )
 
 def test_power_grid_initialization(valid_grid):
     # Initialization logic is implicitly tested via the fixture.
