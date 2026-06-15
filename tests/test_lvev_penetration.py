@@ -1,7 +1,9 @@
 import pandas as pd
 import pytest
 
+from power_system_simulation import ev_penetration as ev_penetration_module
 from power_system_simulation.lv_grid_analytics import Assignment3ValidationError, LVGridAnalytics
+from power_system_simulation.validate import ValidationException
 
 FILE_PATH_VALID_INPUT = "tests/small_network"
 
@@ -47,18 +49,43 @@ def test_run_ev_penetration_with_valid_penetration_level(valid_grid):
     assert set(line_table.columns) == expected_line_columns
 
 
-def test_run_ev_penetration_rejects_penetration_level_zero(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
-        valid_grid.run_ev_penetration(penetration_level=0.0)
+def test_run_ev_penetration_adds_ev_profiles_to_integer_load_columns(valid_grid, monkeypatch):
+    captured = {}
+
+    def stop_after_assignment(dataset, active_load_profiles, reactive_load_profiles):
+        captured["active_load_profiles"] = active_load_profiles.copy()
+        raise ValidationException("stop after EV assignment")
+
+    monkeypatch.setattr(ev_penetration_module, "_run_time_series_power_flow", stop_after_assignment)
+
+    with pytest.raises(Assignment3ValidationError, match="stop after EV assignment"):
+        valid_grid.run_ev_penetration(
+            penetration_level=1.0,
+            random_seed=42,
+        )
+
+    profile_delta = (captured["active_load_profiles"] - valid_grid._active_load_profiles).abs().sum().sum()
+    assert profile_delta > 0.0
+
+
+def test_run_ev_penetration_accepts_penetration_level_zero(valid_grid):
+    timestamp_table, line_table = valid_grid.run_ev_penetration(
+        penetration_level=0.0,
+        random_seed=42,
+    )
+
+    assert isinstance(timestamp_table, pd.DataFrame)
+    assert isinstance(line_table, pd.DataFrame)
+    assert len(timestamp_table) == len(valid_grid._active_load_profiles)
 
 
 def test_run_ev_penetration_rejects_penetration_level_greater_than_one(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
+    with pytest.raises(Assignment3ValidationError, match="must be in range \\[0.0, 1.0\\]"):
         valid_grid.run_ev_penetration(penetration_level=1.5)
 
 
 def test_run_ev_penetration_rejects_negative_penetration_level(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
+    with pytest.raises(Assignment3ValidationError, match="must be in range \\[0.0, 1.0\\]"):
         valid_grid.run_ev_penetration(penetration_level=-0.1)
 
 
