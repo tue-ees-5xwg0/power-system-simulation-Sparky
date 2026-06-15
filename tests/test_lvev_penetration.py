@@ -47,18 +47,24 @@ def test_run_ev_penetration_with_valid_penetration_level(valid_grid):
     assert set(line_table.columns) == expected_line_columns
 
 
-def test_run_ev_penetration_rejects_penetration_level_zero(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
-        valid_grid.run_ev_penetration(penetration_level=0.0)
+def test_run_ev_penetration_accepts_penetration_level_zero(valid_grid):
+    timestamp_table, line_table = valid_grid.run_ev_penetration(
+        penetration_level=0.0,
+        random_seed=42,
+    )
+
+    assert isinstance(timestamp_table, pd.DataFrame)
+    assert isinstance(line_table, pd.DataFrame)
+    assert len(timestamp_table) == len(valid_grid._active_load_profiles)
 
 
 def test_run_ev_penetration_rejects_penetration_level_greater_than_one(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
+    with pytest.raises(Assignment3ValidationError, match="must be in range \\[0.0, 1.0\\]"):
         valid_grid.run_ev_penetration(penetration_level=1.5)
 
 
 def test_run_ev_penetration_rejects_negative_penetration_level(valid_grid):
-    with pytest.raises(Assignment3ValidationError, match="must be in range \\(0.0, 1.0\\]"):
+    with pytest.raises(Assignment3ValidationError, match="must be in range \\[0.0, 1.0\\]"):
         valid_grid.run_ev_penetration(penetration_level=-0.1)
 
 

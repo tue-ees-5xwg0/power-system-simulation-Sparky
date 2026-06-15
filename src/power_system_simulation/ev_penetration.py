@@ -21,8 +21,8 @@ def run_ev_penetration(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     if not isinstance(penetration_level, (int, float)):
         raise ValidationException("Penetration level must be a number.")
-    if penetration_level <= 0.0 or penetration_level > 1.0:
-        raise ValidationException(f"Penetration level must be in range (0.0, 1.0]. Got {penetration_level}.")
+    if penetration_level < 0.0 or penetration_level > 1.0:
+        raise ValidationException(f"Penetration level must be in range [0.0, 1.0]. Got {penetration_level}.")
 
     total_houses = len(dataset["sym_load"]["id"])
     evs_per_feeder = math.floor(penetration_level * total_houses / len(feeder_line_ids))
