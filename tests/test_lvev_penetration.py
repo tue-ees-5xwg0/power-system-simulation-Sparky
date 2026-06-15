@@ -68,25 +68,6 @@ def test_run_ev_penetration_adds_ev_profiles_to_integer_load_columns(valid_grid,
     assert profile_delta > 0.0
 
 
-def test_run_ev_penetration_adds_ev_profiles_to_integer_load_columns(valid_grid, monkeypatch):
-    captured = {}
-
-    def stop_after_assignment(dataset, active_load_profiles, reactive_load_profiles):
-        captured["active_load_profiles"] = active_load_profiles.copy()
-        raise ValidationException("stop after EV assignment")
-
-    monkeypatch.setattr(ev_penetration_module, "_run_time_series_power_flow", stop_after_assignment)
-
-    with pytest.raises(Assignment3ValidationError, match="stop after EV assignment"):
-        valid_grid.run_ev_penetration(
-            penetration_level=1.0,
-            random_seed=42,
-        )
-
-    profile_delta = (captured["active_load_profiles"] - valid_grid._active_load_profiles).abs().sum().sum()
-    assert profile_delta > 0.0
-
-
 def test_run_ev_penetration_accepts_penetration_level_zero(valid_grid):
     timestamp_table, line_table = valid_grid.run_ev_penetration(
         penetration_level=0.0,
