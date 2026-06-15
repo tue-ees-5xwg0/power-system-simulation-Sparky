@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
-from power_grid_model import ComponentType, PowerGridModel
+from power_grid_model import ComponentType, PowerGridModel, initialize_array
 
 from power_system_simulation.graph_processing import GraphProcessor
 
@@ -16,6 +16,7 @@ class NMinusOne:
     N-1 contingency analysis for power grids.
     Analyzes what happens when a single line is disconnected and identifies
     alternative topologies that restore grid connectivity.
+    Returns a table with the maximum loading across all lines and timestamps for each alternative topology.
     """
 
     def __init__(
@@ -95,7 +96,6 @@ class NMinusOne:
             num_loads = len(load_ids)
 
             # Initialize the update array with correct shape and NaN values
-            from power_grid_model import initialize_array
 
             sym_load_updates = initialize_array("update", "sym_load", (num_timestamps, num_loads))
 
