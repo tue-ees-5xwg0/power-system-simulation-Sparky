@@ -5,11 +5,13 @@ from power_system_simulation import lv_grid_analytics as lv_grid_analytics_modul
 from power_system_simulation.graph_processing import IDNotFoundError
 from power_system_simulation.lv_grid_analytics import (
     Assignment3ValidationError,
+    InvalidFeederError,
     InvalidLineOutageError,
     LVGridAnalytics,
     ProfileMismatchError,
     TapOptimizationError,
 )
+from power_system_simulation.tap_position_optimization import minimize_total_loss
 from power_system_simulation.validate import ProfilesNotMatchingError, ValidationException
 
 FILE_PATH_VALID_INPUT = "tests/small_network"
@@ -83,6 +85,11 @@ def test_resolve_feeder_line_ids_rejects_invalid_direct_list():
         LVGridAnalytics._resolve_feeder_line_ids([16, "20"], None)
 
 
+def test_resolve_feeder_line_ids_rejects_empty_direct_list():
+    with pytest.raises(ValidationException, match="At least one feeder"):
+        LVGridAnalytics._resolve_feeder_line_ids([], None)
+
+
 def test_resolve_feeder_line_ids_requires_feeder_source():
     with pytest.raises(ValidationException, match="Either feeder_line_ids or meta_data is required"):
         LVGridAnalytics._resolve_feeder_line_ids(None, None)
@@ -124,6 +131,14 @@ def test_resolve_feeder_line_ids_rejects_invalid_metadata(tmp_path):
     metadata_path.write_text('{"lv_feeders": ["16"]}')
 
     with pytest.raises(ValidationException, match="'lv_feeders' list of line IDs"):
+        LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
+
+
+def test_resolve_feeder_line_ids_rejects_empty_metadata(tmp_path):
+    metadata_path = tmp_path / "meta_data.json"
+    metadata_path.write_text('{"lv_feeders": []}')
+
+    with pytest.raises(ValidationException, match="at least one LV feeder"):
         LVGridAnalytics._resolve_feeder_line_ids(None, metadata_path)
 
 
@@ -192,6 +207,13 @@ def test_validate_ev_profile_fewer_columns(valid_grid):
         valid_grid._validate_ev_profile()
 
 
+def test_validate_inputs_wraps_ev_profile_mismatch(valid_grid):
+    valid_grid._ev_pool = valid_grid._ev_pool.iloc[:-1]
+
+    with pytest.raises(ProfileMismatchError, match="different time indices"):
+        valid_grid.validate_inputs()
+
+
 def test_validate_profile_sym_loads_mismatch(valid_grid):
     # Add a dummy ID that does not exist in the grid
     valid_grid._active_load_profiles[999999] = 0.0
@@ -235,6 +257,13 @@ def test_validate_feeder_line_ids_invalid(valid_grid):
         valid_grid._validate_feeder_line_ids()
 
 
+def test_validate_inputs_wraps_invalid_feeder_ids(valid_grid):
+    valid_grid._feeder_line_ids = [999999]
+
+    with pytest.raises(InvalidFeederError, match="not valid"):
+        valid_grid.validate_inputs()
+
+
 def test_validate_feeder_connections_invalid(valid_grid):
     # Change transformer to_node to something that doesn't match the feeder's from_node
     valid_grid._dataset["transformer"]["to_node"][0] = 999999
@@ -249,6 +278,14 @@ def test_validate_topology_disconnected(valid_grid):
     valid_grid._dataset["line"]["to_status"][0] = 0
     with pytest.raises(Assignment3ValidationError, match="not fully connected"):
         valid_grid._validate_topology()
+
+
+def test_validate_topology_treats_disabled_transformer_as_disconnected(valid_grid):
+    valid_grid._dataset["transformer"]["from_status"][0] = 0
+    valid_grid._dataset["transformer"]["to_status"][0] = 0
+
+    with pytest.raises(Assignment3ValidationError, match="not fully connected"):
+        valid_grid.validate_inputs()
 
 
 def test_validate_topology_cyclic(valid_grid):
@@ -275,6 +312,13 @@ def test_n_minus_one_wraps_input_validation_errors(valid_grid):
 
     with pytest.raises(InvalidLineOutageError, match="Input validation failed"):
         valid_grid.n_minus_one(outage_line_id=16)
+
+
+def test_optimize_tap_position_validates_lv_inputs(valid_grid):
+    valid_grid._feeder_line_ids = [999999]
+
+    with pytest.raises(InvalidFeederError, match="not valid"):
+        valid_grid.optimize_tap_position(minimize_total_loss)
 
 
 def test_n_minus_one_delegates_to_analyzer(valid_grid, monkeypatch):

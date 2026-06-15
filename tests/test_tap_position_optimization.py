@@ -149,9 +149,9 @@ def test_invalid_tap_bounds_raise_tap_optimization_error():
         optimizer.optimize_tap_position(minimize_total_loss)
 
 
-def test_lv_grid_analytics_exposes_tap_optimization_by_inheritance():
+def test_lv_grid_analytics_wraps_inherited_tap_optimization():
     assert issubclass(LVGridAnalytics, TapPositionOptimization)
-    assert LVGridAnalytics.optimize_tap_position is TapPositionOptimization.optimize_tap_position
+    assert LVGridAnalytics.optimize_tap_position is not TapPositionOptimization.optimize_tap_position
 
 
 def test_invalid_criterion_raises_tap_optimization_error():
