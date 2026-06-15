@@ -51,7 +51,7 @@ class TapPositionOptimization:
         self._validate_tap_inputs()
         self._tap_transformer_id = self._resolve_transformer_id(transformer_id)
 
-    def optimize_tap_position(self, criterion: TapOptimizationCriterion) -> TapOptimizationResult:
+    def optimize_tap_position(self, criterion: TapOptimizationCriterion, *args, **kwargs) -> TapOptimizationResult:
         if not callable(criterion):
             raise TapOptimizationError("Tap optimization criterion must be callable.")
 
@@ -60,7 +60,7 @@ class TapPositionOptimization:
 
         for tap_position in tap_positions:
             candidate_dataset = self._copy_dataset_with_tap_position(tap_position)
-            results = self._run_time_series_power_flow(candidate_dataset)
+            results = self._run_time_series_power_flow(candidate_dataset, *args, **kwargs)
             timestamp_table = self._output_table_row_per_timestamp(results)
             line_table = self._output_table_row_per_line(results)
 
@@ -156,12 +156,14 @@ class TapPositionOptimization:
         transformer["tap_pos"][matches] = tap_position
         return copied_dataset
 
-    def _run_time_series_power_flow(self, dataset: Dataset) -> dict:
+    def _run_time_series_power_flow(self, dataset: Dataset, *args, **kwargs) -> dict:
         try:
             model = PowerGridModel(dataset)
             return model.calculate_power_flow(
                 update_data=self._create_pgm_batch_dataset(),
                 symmetric=True,
+                *args,
+                **kwargs
             )
         except PowerGridError as error:
             raise TapOptimizationError("Power flow failed during tap position optimization.") from error
