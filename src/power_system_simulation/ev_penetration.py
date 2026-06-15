@@ -51,9 +51,14 @@ def run_ev_penetration(
                 profile_idx = rng.choice(len(available_ev_profiles))
                 ev_profile_col = available_ev_profiles.pop(profile_idx)
 
-                load_id_str = str(load_id)
-                if load_id_str in active_load_profiles_with_ev.columns:
-                    active_load_profiles_with_ev[load_id_str] += ev_pool.iloc[:, ev_profile_col]
+                if load_id in active_load_profiles_with_ev.columns:
+                    load_profile_col = load_id
+                elif str(load_id) in active_load_profiles_with_ev.columns:
+                    load_profile_col = str(load_id)
+                else:
+                    raise ValidationException(f"Load profile column for sym_load ID {load_id} was not found.")
+
+                active_load_profiles_with_ev[load_profile_col] += ev_pool.iloc[:, ev_profile_col]
 
     power_flow_results = _run_time_series_power_flow(
         dataset,

@@ -13,7 +13,12 @@ from power_system_simulation.graph_processing import (
     InputLengthDoesNotMatchError,
 )
 from power_system_simulation.N_minus_1 import InvalidLineOutageError, NMinusOne
-from power_system_simulation.tap_position_optimization import TapOptimizationError, TapPositionOptimization
+from power_system_simulation.tap_position_optimization import (
+    TapOptimizationCriterion,
+    TapOptimizationError,
+    TapOptimizationResult,
+    TapPositionOptimization,
+)
 from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
@@ -62,6 +67,10 @@ class LVGridAnalytics(TapPositionOptimization):
         """
         try:
             self._feeder_line_ids = self._resolve_feeder_line_ids(feeder_line_ids, meta_data)
+        except ValidationException as e:
+            raise InvalidFeederError(str(e)) from e
+
+        try:
             self._dataset = validate_power_grid_model(grid_path)
             self._active_load_profiles, self._reactive_load_profiles = validate_active_reactive_profiles(
                 active_load_profile_path, reactive_load_profile_path
@@ -90,6 +99,8 @@ class LVGridAnalytics(TapPositionOptimization):
             )
             if line_ids_are_invalid:
                 raise ValidationException("Feeder line IDs must be provided as a list of line IDs.")
+            if not feeder_line_ids:
+                raise ValidationException("At least one feeder line ID is required.")
             return feeder_line_ids
 
         if meta_data is None:
@@ -114,28 +125,46 @@ class LVGridAnalytics(TapPositionOptimization):
         lv_feeders = metadata.get("lv_feeders")
         if not isinstance(lv_feeders, list) or not all(isinstance(line_id, int) for line_id in lv_feeders):
             raise ValidationException("Metadata file must contain an 'lv_feeders' list of line IDs.")
+        if not lv_feeders:
+            raise ValidationException("Metadata file must contain at least one LV feeder line ID.")
 
         return lv_feeders
 
     def validate_inputs(self) -> None:
         """Runs all the validation checks for Assignemnt 3"""
 
-        # Checks Time indences and column IDs match between active load profile, reactive load profile, and ev profile
-        self._validate_ev_profile()
-        # Check if profile IDs match the sym_load IDs in the grid
-        self._validate_profile_sym_loads()
-        # Checks the amount of transformers in the systems
-        self._validate_transformer()
-        # Check the amount of sources in the system
-        self._validate_source()
-        # Check the feeder line ids are valid
-        self._validate_feeder_line_ids()
-        # Checks if the feeder line ids are connected to the transformer
-        self._validate_feeder_connections()
+        try:
+            # Check time indices and column IDs across load and EV profiles.
+            self._validate_ev_profile()
+            # Check if profile IDs match the sym_load IDs in the grid
+            self._validate_profile_sym_loads()
+        except ProfilesNotMatchingError as e:
+            raise ProfileMismatchError(str(e)) from e
+
+        try:
+            # Checks the amount of transformers in the systems
+            self._validate_transformer()
+            # Check the amount of sources in the system
+            self._validate_source()
+        except ValidationException as e:
+            raise Assignment3ValidationError(str(e)) from e
+
+        try:
+            # Check the feeder line ids are valid
+            self._validate_feeder_line_ids()
+            # Checks if the feeder line ids are connected to the transformer
+            self._validate_feeder_connections()
+        except ValidationException as e:
+            raise InvalidFeederError(str(e)) from e
+
         # Check if grid is conneted and acyclic
         self._validate_topology()
-        # Check if the tap position optimization inputs are valid
-        self._validate_tap_inputs()
+
+        try:
+            # Check if the tap position optimization inputs are valid
+            self._validate_tap_inputs()
+        except TapOptimizationError as e:
+            raise Assignment3ValidationError(f"Tap position optimization input validation failed: {e}") from e
 
     def _validate_topology(self) -> None:
         """Extracts grid data and uses GraphProcessor to validate topology."""
@@ -155,10 +184,15 @@ class LVGridAnalytics(TapPositionOptimization):
 
         # 4. Determine if edges are enabled
         # A line is only active if BOTH switches (from_status and to_status) are closed (1)
-        edge_enabled = [
+        line_enabled = [
             bool(f_stat == 1 and t_stat == 1)
             for f_stat, t_stat in zip(line_data["from_status"], line_data["to_status"], strict=True)
-        ] + [True] * len(transformer_data)  # Transformers are always enabled
+        ]
+        transformer_enabled = [
+            bool(f_stat == 1 and t_stat == 1)
+            for f_stat, t_stat in zip(transformer_data["from_status"], transformer_data["to_status"], strict=True)
+        ]
+        edge_enabled = line_enabled + transformer_enabled
 
         # 5. Extract the source vertex ID
         # (Assuming _validate_source already proved there is exactly 1 source)
@@ -242,7 +276,11 @@ class LVGridAnalytics(TapPositionOptimization):
             if line_from_node_dict.get(line_id) != transformer_to_node:
                 raise ValidationException(f"Feeder line ID {line_id} is not connected to the transformer.")
 
-    def n_minus_one(self, outage_line_id: int) -> None:
+    def optimize_tap_position(self, criterion: TapOptimizationCriterion) -> TapOptimizationResult:
+        self.validate_inputs()
+        return super().optimize_tap_position(criterion)
+
+    def n_minus_one(self, outage_line_id: int) -> pd.DataFrame:
         """
         Perform N-1 contingency analysis for a given line outage.
 
