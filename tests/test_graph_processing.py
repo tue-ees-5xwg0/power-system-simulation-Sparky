@@ -1,4 +1,4 @@
-import GraphTools.graph_processing as gp
+import power_system_simulation.graph_processing as gp
 
 
 def test_valid_input():

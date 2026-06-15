@@ -2,14 +2,14 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from PowerGridModel.power_grid_calculator import (
-    GridModel,
+from power_system_simulation.power_grid_calculator import GridModel
+from power_system_simulation.validate import (
     ProfilesNotMatchingError,
     ValidationException,
-    _validate_active_reactive_profiles,
-    _validate_load_profile,
-    _validate_power_grid_model,
-    _validate_profiles_match,
+    validate_active_reactive_profiles,
+    validate_load_profile,
+    validate_power_grid_model,
+    validate_profiles_match,
 )
 
 FILE_PATH_VALID_INPUT = "tests/PGM_TestData/input"
@@ -30,34 +30,34 @@ PD_ASSERT_FRAME_EQUAL_KWARGS = {
 def test_validate_power_grid_model():
     # Test with valid input
     try:
-        _validate_power_grid_model(FILE_PATH_VALID_INPUT + "/input_network_data.json")
+        validate_power_grid_model(FILE_PATH_VALID_INPUT + "/input_network_data.json")
     except ValidationException:
         raise AssertionError("ValidationException was raised for valid input.") from None
 
     # Test with empty string
     try:
-        _validate_power_grid_model("")
+        validate_power_grid_model("")
         raise AssertionError("ValidationException was not raised for empty string.")
     except ValidationException:
         pass
 
     # Test with invalid file path
     try:
-        _validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/invalid_path.json")
+        validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/invalid_path.json")
         raise AssertionError("ValidationException was not raised for invalid file path.")
     except ValidationException:
         pass
 
     # Test with invalid file extension
     try:
-        _validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/wrong.extension")
+        validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/wrong.extension")
         raise AssertionError("ValidationException was not raised for invalid file extension.")
     except ValidationException:
         pass
 
     # Test with inconsistent data
     try:
-        _validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/input_network_data.json")
+        validate_power_grid_model(FILE_PATH_FALSE_INPUT + "/input_network_data.json")
         raise AssertionError("ValidationException was not raised for inconsistent data.")
     except ValidationException:
         pass
@@ -66,7 +66,7 @@ def test_validate_power_grid_model():
 def test_validate_load_profiles():
     # Test with valid input
     try:
-        _validate_active_reactive_profiles(
+        validate_active_reactive_profiles(
             FILE_PATH_VALID_INPUT + "/active_power_profile.parquet",
             FILE_PATH_VALID_INPUT + "/reactive_power_profile.parquet",
         )
@@ -75,21 +75,21 @@ def test_validate_load_profiles():
 
     # Test with invalid file path
     try:
-        _validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/invalid_active_path.parquet")
+        validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/invalid_active_path.parquet")
         raise AssertionError("ValidationException was not raised for invalid file path.")
     except ValidationException:
         pass
 
     # Test with invalid file extension
     try:
-        _validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/wrong.extension")
+        validate_load_profile("Test", FILE_PATH_FALSE_INPUT + "/wrong.extension")
         raise AssertionError("ValidationException was not raised for invalid file extension.")
     except ValidationException:
         pass
 
     # Test with empty string
     try:
-        _validate_load_profile("Test", "")
+        validate_load_profile("Test", "")
         raise AssertionError("ValidationException was not raised for empty string.")
     except ValidationException:
         pass
@@ -100,14 +100,14 @@ def test_validate_profiles_match():
     active_profiles = pd.DataFrame({1: [100, 200, 300], 2: [100, 200, 300]})
     reactive_profiles = pd.DataFrame({1: [50, 100, 150], 2: [50, 100, 150]})
     try:
-        _validate_profiles_match(active_profiles, reactive_profiles)
+        validate_profiles_match(active_profiles, reactive_profiles)
     except ValidationException:
         raise AssertionError("ValidationException was raised for matching profiles.") from None
 
     # Test with non-matching profiles
     reactive_profiles_non_matching = pd.DataFrame({1: [50, 100, 150], 3: [50, 100, 150]})
     try:
-        _validate_profiles_match(active_profiles, reactive_profiles_non_matching)
+        validate_profiles_match(active_profiles, reactive_profiles_non_matching)
         raise AssertionError("ValidationException was not raised for non-matching profiles.")
     except ProfilesNotMatchingError:
         pass
@@ -152,7 +152,7 @@ def test_validate_profiles_mismatch_load_ids():
     )
 
     try:
-        _validate_profiles_match(active_profiles, reactive_profiles)
+        validate_profiles_match(active_profiles, reactive_profiles)
         raise AssertionError("ProfilesNotMatchingError was not raised for mismatched load IDs.")
     except ProfilesNotMatchingError:
         pass
@@ -168,7 +168,7 @@ def test_validate_profiles_mismatch_timestamp():
     )
 
     try:
-        _validate_profiles_match(active_profiles, reactive_profiles)
+        validate_profiles_match(active_profiles, reactive_profiles)
         raise AssertionError("ProfilesNotMatchingError was not raised for mismatched timestamps.")
     except ProfilesNotMatchingError:
         pass
