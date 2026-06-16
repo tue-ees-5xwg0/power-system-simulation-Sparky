@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from power_grid_model import ComponentType, PowerGridModel, power_grid_meta_data
+from power_grid_model import ComponentType, PowerGridModel, initialize_array
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
 
@@ -112,25 +112,22 @@ def _create_pgm_batch_dataset(
     timestamps = active_load_profiles.index
     load_ids = list(active_load_profiles.columns)
 
-    update_meta = power_grid_meta_data["update"]["sym_load"]
-    sym_load_dtype = update_meta.dtype
-    status_nan = update_meta.nan_scalar["status"][0]
+    timestamps = active_load_profiles.index
+    load_ids = list(active_load_profiles.columns)
 
-    sym_load_updates = []
-    for timestamp in timestamps:
-        timestamp_updates = []
-        for load_id in load_ids:
-            timestamp_updates.append(
-                (
-                    int(load_id),
-                    status_nan,
-                    float(active_load_profiles.loc[timestamp, load_id]),
-                    float(reactive_load_profiles.loc[timestamp, load_id]),
-                )
-            )
-        sym_load_updates.append(np.array(timestamp_updates, dtype=sym_load_dtype))
+    num_timestamps = len(timestamps)
+    num_loads = len(load_ids)
 
-    return {"sym_load": np.stack(sym_load_updates, axis=0)}
+    # Initialize the update array with correct shape and NaN values
+
+    sym_load_updates = initialize_array("update", "sym_load", (num_timestamps, num_loads))
+
+    # Fill in the load data
+    sym_load_updates["id"] = [int(load_id) for load_id in load_ids]
+    sym_load_updates["p_specified"] = active_load_profiles[load_ids].to_numpy()
+    sym_load_updates["q_specified"] = reactive_load_profiles[load_ids].to_numpy()
+
+    return {"sym_load": sym_load_updates}
 
 
 def _output_table_row_per_timestamp(power_flow_results: dict, active_load_profiles: pd.DataFrame) -> DataFrame:
