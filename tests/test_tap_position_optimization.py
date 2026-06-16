@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from power_grid_model import BranchSide, LoadGenType, WindingType, initialize_array
 
+import power_system_simulation.tap_position_optimization as tap_optimization_module
 from power_system_simulation.lv_grid_analytics import LVGridAnalytics
 from power_system_simulation.tap_position_optimization import (
     TapOptimizationError,
@@ -130,6 +131,41 @@ def test_custom_criterion_receives_aggregation_tables_and_controls_selection():
     assert len(calls) == 3
     assert result.tap_position == -1
     assert result.criterion is custom_criterion
+
+
+def test_tap_position_evaluations_use_process_pool(monkeypatch):
+    active, reactive = _profiles()
+    optimizer = TapPositionOptimization(_transformer_dataset(tap_min=0, tap_max=2), active, reactive)
+
+    class RecordingProcessPoolExecutor:
+        def __init__(self, max_workers):
+            self.max_workers = max_workers
+            self.mapped_function = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def map(self, function, *iterables):
+            self.mapped_function = function
+            return map(function, *iterables)
+
+    created_executors = []
+
+    def recording_process_pool_executor(max_workers):
+        executor = RecordingProcessPoolExecutor(max_workers)
+        created_executors.append(executor)
+        return executor
+
+    monkeypatch.setattr(tap_optimization_module, "ProcessPoolExecutor", recording_process_pool_executor)
+
+    result = optimizer.optimize_tap_position(minimize_total_loss)
+
+    assert created_executors[0].max_workers == min(3, tap_optimization_module.cpu_count() or 1)
+    assert created_executors[0].mapped_function is tap_optimization_module._evaluate_tap_position_candidate
+    assert list(result.all_tap_results["tap_position"]) == [0, 1, 2]
 
 
 def test_missing_transformer_raises_tap_optimization_error():
