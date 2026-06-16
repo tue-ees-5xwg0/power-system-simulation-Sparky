@@ -276,9 +276,9 @@ class LVGridAnalytics(TapPositionOptimization):
             if line_from_node_dict.get(line_id) != transformer_to_node:
                 raise ValidationException(f"Feeder line ID {line_id} is not connected to the transformer.")
 
-    def optimize_tap_position(self, criterion: TapOptimizationCriterion) -> TapOptimizationResult:
+    def optimize_tap_position(self, criterion: TapOptimizationCriterion, *args, **kwargs) -> TapOptimizationResult:
         self.validate_inputs()
-        return super().optimize_tap_position(criterion)
+        return super().optimize_tap_position(criterion, *args, **kwargs)
 
     def n_minus_one(self, outage_line_id: int) -> pd.DataFrame:
         """
