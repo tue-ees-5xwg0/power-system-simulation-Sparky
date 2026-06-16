@@ -57,7 +57,7 @@ class NMinusOne:
         Raises:
             InvalidLineOutageError: If line doesn't exist or is already disabled
         """
-        # 1. Validate the line exists and is currently active
+        # Validate that the line exists and is currently active
         line_data = self._power_grid_model_dataset["line"]
         line_id_mask = np.isin(line_data["id"], outage_line_id)
 
@@ -68,12 +68,12 @@ class NMinusOne:
         if line_data["from_status"][line_idx] != 1 or line_data["to_status"][line_idx] != 1:
             raise InvalidLineOutageError(f"Line ID {outage_line_id} is already out of service.")
 
-        # 2. Find alternative lines that can restore connectivity
+        # Find alternative lines using the alternative edge code from graph processing
         alternatives = self._graph_processor.find_alternative_edges(outage_line_id)
 
         rows = []
 
-        # 3. For each alternative, run time-series power flow
+        # For each alternative, run time-series power flow
         for alt_line_id in alternatives:
             # Create a fresh copy of the dataset for this scenario
             candidate_dataset = deepcopy(self._power_grid_model_dataset)
@@ -88,7 +88,7 @@ class NMinusOne:
             alt_idx = np.where(np.isin(line_data["id"], alt_line_id))[0][0]
             line_data["to_status"][alt_idx] = 1
 
-            # 4. Create batch update dataset for time-series power flow
+            # Create batch update dataset for time-series power flow
             timestamps = self._active_load_profiles.index
             load_ids = list(self._active_load_profiles.columns)
 
@@ -106,7 +106,7 @@ class NMinusOne:
 
             batch_dataset = {"sym_load": sym_load_updates}
 
-            # 5. Run time-series power flow
+            # Run time-series power flow
             try:
                 model = PowerGridModel(candidate_dataset)
                 results = model.calculate_power_flow(
@@ -117,7 +117,7 @@ class NMinusOne:
                 # If power flow fails for this alternative, skip it
                 continue
 
-            # 6. Extract line results
+            # Extract line results
             line_results = results.get(ComponentType.line, results.get("line"))
             if line_results is None:
                 continue
@@ -129,7 +129,7 @@ class NMinusOne:
             if line_results.shape[0] != num_timestamps:
                 continue
 
-            # 7. Find maximum loading across all lines and timestamps
+            # Find maximum loading across all lines and timestamps
             loading = line_results["loading"]
             max_loading_overall = np.nanmax(loading)
 
@@ -141,7 +141,7 @@ class NMinusOne:
             max_loading_line_id = int(line_results[0]["id"][max_loading_line_idx])
             max_loading_timestamp = pd.to_datetime(timestamps[max_loading_timestamp_idx])
 
-            # 8. Store results
+            # Store results
             rows.append(
                 {
                     "Alternative_Line_ID": alt_line_id,
