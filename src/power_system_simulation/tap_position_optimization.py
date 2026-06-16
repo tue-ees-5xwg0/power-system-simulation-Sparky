@@ -8,10 +8,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from power_grid_model import ComponentType, PowerGridModel, power_grid_meta_data
+from power_grid_model import ComponentType, PowerGridModel, initialize_array
 from power_grid_model._core.data_types import Dataset
 from power_grid_model.errors import PowerGridError
-from power_grid_model import initialize_array
 
 TapOptimizationCriterion = Callable[[pd.DataFrame, pd.DataFrame], float]
 
@@ -112,10 +111,6 @@ def _create_pgm_batch_dataset(
 ) -> dict:
     timestamps = active_load_profiles.index
     load_ids = list(active_load_profiles.columns)
-
-    update_meta = power_grid_meta_data["update"]["sym_load"]
-    sym_load_dtype = update_meta.dtype
-    status_nan = update_meta.nan_scalar["status"][0]
 
     timestamps = active_load_profiles.index
     load_ids = list(active_load_profiles.columns)
